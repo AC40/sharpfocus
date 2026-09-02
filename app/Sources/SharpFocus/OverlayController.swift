@@ -25,7 +25,16 @@ final class OverlayController {
 
     private static let holeCornerRadius: CGFloat = 11
 
-    var windows: [NSWindow] { overlays.map(\.window) }
+    var isActive: Bool { !overlays.isEmpty }
+
+    /// Temporarily hides the overlay (Mission Control) without tearing it
+    /// down. `show()` respects this, so nothing can accidentally un-hide it.
+    var isSuppressed = false {
+        didSet {
+            guard isSuppressed != oldValue else { return }
+            isSuppressed ? hide() : show()
+        }
+    }
 
     func rebuild() {
         tearDown()
@@ -42,6 +51,7 @@ final class OverlayController {
     }
 
     func show() {
+        guard !isSuppressed else { return }
         overlays.forEach { $0.window.orderFrontRegardless() }
     }
 

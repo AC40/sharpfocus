@@ -82,9 +82,12 @@
           </p>
         </div>
 
-        <div class="stage" id="stage">
-          <div class="desktop" id="desktop" role="group" aria-label="Simulated macOS desktop"></div>
+        <div class="stage" id="stage" tabindex="0" role="region" aria-label="Interactive demo: a simulated macOS desktop">
+          <div class="stage-inner">
+            <div class="desktop" id="desktop"></div>
+          </div>
         </div>
+        <p class="pan-hint" id="panHint" hidden>Drag sideways to see the rest</p>
 
         <div class="controls" id="controls">
           <div class="control-main">
@@ -255,10 +258,9 @@ open "sharpfocus://preset/deep-work"</code></pre>
               <path d="M8 1.5v9m0 0L4.5 7M8 10.5 11.5 7M2 13.5h12" />
             </svg>
           </a>
-          <p class="dl-alt">
-            or build it yourself —
-            <code>git clone https://github.com/ac40/sharpfocus &amp;&amp; ./Scripts/bundle.sh</code>
-          </p>
+          <p class="dl-alt">or build it yourself:</p>
+          <pre class="dl-code"><code>git clone https://github.com/ac40/sharpfocus
+cd sharpfocus &amp;&amp; ./Scripts/bundle.sh</code></pre>
         </div>
         <aside class="dl-notes">
           <h3>Before you open it</h3>

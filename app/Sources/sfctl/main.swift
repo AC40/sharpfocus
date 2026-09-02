@@ -21,7 +21,7 @@ guard let key = arguments.first, !["-h", "--help", "help"].contains(key) else {
       preset <name>          apply a preset (and enable)
       snooze <minutes>       turn off temporarily
       mc-pause 1|0           pause in Mission Control
-      settings               open the settings window
+      settings [tab]         open the settings window (general|effect|presets|automation|about)
     """)
     exit(arguments.isEmpty ? 64 : 0)
 }

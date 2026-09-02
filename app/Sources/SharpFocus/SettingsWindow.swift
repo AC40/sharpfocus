@@ -1,37 +1,85 @@
 import AppKit
 import SwiftUI
 
-enum SettingsTab: Hashable {
+enum SettingsTab: String, CaseIterable {
     case general, effect, presets, automation, about
+
+    init?(name: String) {
+        self.init(rawValue: name.lowercased())
+    }
+
+    var title: String { rawValue.capitalized }
+
+    var symbol: String {
+        switch self {
+        case .general: return "gearshape"
+        case .effect: return "circle.lefthalf.filled"
+        case .presets: return "square.stack"
+        case .automation: return "clock"
+        case .about: return "info.circle"
+        }
+    }
+
+    var index: Int { Self.allCases.firstIndex(of: self) ?? 0 }
 }
 
-final class SettingsNavigation: ObservableObject {
-    @Published var tab: SettingsTab = .general
+/// NSTabViewController doesn't title the window after the selected tab on its
+/// own; this one does.
+private final class TitledTabViewController: NSTabViewController {
+    override var selectedTabViewItemIndex: Int {
+        didSet { updateTitle() }
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        updateTitle()
+    }
+
+    override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        super.tabView(tabView, didSelect: tabViewItem)
+        updateTitle()
+    }
+
+    private func updateTitle() {
+        guard tabViewItems.indices.contains(selectedTabViewItemIndex) else { return }
+        let label = tabViewItems[selectedTabViewItemIndex].label
+        title = label
+        view.window?.title = label
+    }
 }
 
-/// Mos-style fixed-size, top-tabbed settings panel.
+/// Preferences-style window: toolbar tabs, fixed width, each pane sized to
+/// its content (the classic System Preferences / Mos pattern).
 final class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
-    private let navigation = SettingsNavigation()
+    private let tabs = TitledTabViewController()
 
     private init() {
-        let host = NSHostingController(rootView: SettingsRootView(navigation: navigation))
-        let window = NSWindow(contentViewController: host)
-        window.title = "Sharp Focus"
+        tabs.tabStyle = .toolbar
+        tabs.transitionOptions = [.allowUserInteraction]
+        for tab in SettingsTab.allCases {
+            let host = NSHostingController(rootView: SettingsPane(tab: tab))
+            host.preferredContentSize = NSSize(width: 520, height: SettingsPane.height(for: tab))
+            let item = NSTabViewItem(viewController: host)
+            item.label = tab.title
+            item.image = NSImage(systemSymbolName: tab.symbol, accessibilityDescription: tab.title)
+            tabs.addTabViewItem(item)
+        }
+
+        let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable, .miniaturizable]
+        window.toolbarStyle = .preference
         window.isReleasedWhenClosed = false
-        window.center()
+        window.title = "Sharp Focus"
         super.init(window: window)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func show(tab: SettingsTab? = nil) {
-        if let tab { navigation.tab = tab }
         guard let window else { return }
-        if !window.isVisible {
-            window.center()
-        }
+        if let tab { tabs.selectedTabViewItemIndex = tab.index }
+        if !window.isVisible { window.center() }
         // Activation is cooperative on macOS 14+; when triggered from a URL or
         // the CLI the system may decline it, so force the window up as well.
         NSApp.activate(ignoringOtherApps: true)
@@ -46,22 +94,34 @@ extension Settings {
     }
 }
 
-struct SettingsRootView: View {
-    @ObservedObject var navigation: SettingsNavigation
+private struct SettingsPane: View {
+    let tab: SettingsTab
+
+    static func height(for tab: SettingsTab) -> CGFloat {
+        switch tab {
+        case .general: return 440
+        case .effect: return 560
+        case .presets: return 540
+        case .automation: return 560
+        case .about: return 380
+        }
+    }
 
     var body: some View {
-        TabView(selection: $navigation.tab) {
-            GeneralTab().tabItem { Label("General", systemImage: "gearshape") }.tag(SettingsTab.general)
-            EffectTab().tabItem { Label("Effect", systemImage: "circle.lefthalf.filled") }.tag(SettingsTab.effect)
-            PresetsTab().tabItem { Label("Presets", systemImage: "square.stack") }.tag(SettingsTab.presets)
-            AutomationTab().tabItem { Label("Automation", systemImage: "clock") }.tag(SettingsTab.automation)
-            AboutTab().tabItem { Label("About", systemImage: "info.circle") }.tag(SettingsTab.about)
+        Group {
+            switch tab {
+            case .general: GeneralPane()
+            case .effect: EffectPane()
+            case .presets: PresetsPane()
+            case .automation: AutomationPane()
+            case .about: AboutPane()
+            }
         }
-        .frame(width: 580, height: 460)
+        .frame(width: 520, height: Self.height(for: tab))
     }
 }
 
-// MARK: - Shared controls
+// MARK: - Shared pieces
 
 private struct CaptionedToggle: View {
     let title: String
@@ -72,7 +132,7 @@ private struct CaptionedToggle: View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                Text(caption).font(.footnote).foregroundStyle(.secondary)
+                Text(caption).font(.callout).foregroundStyle(.secondary)
             }
         }
     }
@@ -85,13 +145,13 @@ private struct LabeledSlider: View {
     let format: (Double) -> String
 
     var body: some View {
-        HStack {
-            Text(title).frame(width: 80, alignment: .leading)
+        HStack(spacing: 12) {
+            Text(title).frame(width: 76, alignment: .leading)
             Slider(value: $value, in: range)
             Text(format(value))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: 56, alignment: .trailing)
+                .frame(width: 52, alignment: .trailing)
         }
     }
 }
@@ -101,13 +161,11 @@ private struct ShortcutRow: View {
     let keys: String
 
     var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
+        LabeledContent(title) {
             Text(keys)
-                .font(.system(.body, design: .monospaced))
-                .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+                .font(.system(.body, design: .rounded).weight(.medium))
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
     }
 }
@@ -115,64 +173,70 @@ private struct ShortcutRow: View {
 private func percent(_ value: Double) -> String { "\(Int((value * 100).rounded()))%" }
 private func points(_ value: Double) -> String { "\(Int(value.rounded())) px" }
 
+private func effectSummary(grayscale: Double, blur: Double, dimming: Double, mode: FollowMode) -> String {
+    var parts = ["\(percent(grayscale)) gray"]
+    if blur > 0.5 { parts.append("\(points(blur)) blur") }
+    if dimming > 0.005 { parts.append("\(percent(dimming)) dim") }
+    parts.append(mode == .focusedWindow ? "focused window" : "active app")
+    return parts.joined(separator: " · ")
+}
+
 // MARK: - General
 
-private struct GeneralTab: View {
+private struct GeneralPane: View {
     @ObservedObject var settings = Settings.shared
     @State private var launchAtLogin = LoginItem.isEnabled
     @State private var loginError: String?
 
     var body: some View {
         Form {
-            Section("Startup") {
+            Section {
                 CaptionedToggle(
                     title: "Launch at login",
                     caption: LoginItem.isSupported
-                        ? "Sharp Focus starts when you sign in."
+                        ? "Start Sharp Focus when you sign in."
                         : "Available when running from SharpFocus.app.",
-                    isOn: Binding(get: { launchAtLogin }, set: setLaunchAtLogin)
-                )
+                    isOn: Binding(get: { launchAtLogin }, set: setLaunchAtLogin))
                 .disabled(!LoginItem.isSupported)
                 if LoginItem.requiresApproval {
-                    HStack {
-                        Text("Needs your approval in System Settings.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                        Spacer()
+                    LabeledContent("Waiting for approval in System Settings") {
                         Button("Open Login Items…") { LoginItem.openSystemSettings() }
                     }
+                    .font(.callout)
                 }
                 if let loginError {
-                    Text(loginError).font(.footnote).foregroundStyle(.red)
+                    Text(loginError).font(.callout).foregroundStyle(.red)
                 }
-            }
-            Section("Behavior") {
                 CaptionedToggle(
                     title: "Pause in Mission Control",
-                    caption: "Hides the effect while Mission Control or App Exposé is open so the animation stays smooth.",
+                    caption: "Lift the effect while Mission Control or App Exposé is open.",
                     isOn: settings.binding(\.pauseInMissionControl))
             }
             Section("Keyboard shortcuts") {
                 ShortcutRow(title: "Toggle Sharp Focus", keys: "⌃⌥⌘F")
                 ShortcutRow(title: "Pin or unpin the focused window", keys: "⌃⌥⌘P")
             }
-            Section("Scripting") {
+            Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Drive Sharp Focus from Raycast, Alfred, Shortcuts or a shell:")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("Scripting").font(.headline)
+                    Text("Raycast, Alfred, Shortcuts and shell scripts can drive Sharp Focus through the bundled sfctl tool or the sharpfocus:// URL scheme.")
+                        .font(.callout).foregroundStyle(.secondary)
                     Text("sfctl preset \"Deep Work\"\nopen \"sharpfocus://set?grayscale=0.8&blur=10\"")
-                        .font(.system(.footnote, design: .monospaced))
+                        .font(.system(.callout, design: .monospaced))
                         .textSelection(.enabled)
+                        .padding(.top, 2)
                 }
+                .padding(.vertical, 4)
             }
         }
         .formStyle(.grouped)
+        .onAppear { launchAtLogin = LoginItem.isEnabled }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
         do {
             try LoginItem.setEnabled(enabled)
             launchAtLogin = enabled
-            settings.launchAtLogin = enabled
             loginError = nil
         } catch {
             loginError = error.localizedDescription
@@ -182,14 +246,14 @@ private struct GeneralTab: View {
 
 // MARK: - Effect
 
-private struct EffectTab: View {
+private struct EffectPane: View {
     @ObservedObject var settings = Settings.shared
 
     var body: some View {
         Form {
             Section {
                 CaptionedToggle(
-                    title: "Enable Sharp Focus",
+                    title: "Sharp Focus",
                     caption: "Everything except the windows you're working in gets filtered.",
                     isOn: settings.binding(\.enabled))
             }
@@ -197,80 +261,111 @@ private struct EffectTab: View {
                 if !Backdrop.isAvailable {
                     Label("Grayscale and blur aren't available on this macOS version — only dimming works.",
                           systemImage: "exclamationmark.triangle")
-                        .font(.footnote)
+                        .font(.callout)
                 }
-                LabeledSlider(title: "Grayscale", value: settings.binding(\.grayscale), range: 0...1, format: percent)
-                LabeledSlider(title: "Blur", value: settings.binding(\.blurRadius), range: 0...40, format: points)
-                LabeledSlider(title: "Dimming", value: settings.binding(\.dimming), range: 0...0.9, format: percent)
+                LabeledSlider(title: "Grayscale", value: settings.binding(\.grayscale),
+                              range: Settings.grayscaleRange, format: percent)
+                LabeledSlider(title: "Blur", value: settings.binding(\.blurRadius),
+                              range: Settings.blurRange, format: points)
+                LabeledSlider(title: "Dimming", value: settings.binding(\.dimming),
+                              range: Settings.dimmingRange, format: percent)
             }
             Section("Keep in color") {
                 Picker("Follow", selection: settings.binding(\.followMode)) {
                     ForEach(FollowMode.allCases, id: \.self) { Text($0.displayName).tag($0) }
                 }
                 .pickerStyle(.radioGroup)
-                AlwaysAppsList()
+            }
+            Section {
+                AlwaysAppsEditor()
+            } header: {
+                Text("Always in color")
+            } footer: {
+                Text("These apps are never filtered, whatever is active — a music player, for example.")
             }
         }
         .formStyle(.grouped)
     }
 }
 
-private struct AlwaysAppsList: View {
+private struct AlwaysAppsEditor: View {
     @ObservedObject var settings = Settings.shared
-    @State private var apps: [NSRunningApplication] = []
+    @State private var running: [NSRunningApplication] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Always in focus").padding(.top, 2)
-            Text("These apps stay in color no matter what's active — a music player, for example.")
-                .font(.footnote).foregroundStyle(.secondary)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(apps, id: \.processIdentifier) { app in
-                        if let bundleID = app.bundleIdentifier {
-                            Toggle(isOn: Binding(
-                                get: { settings.alwaysApps.contains(bundleID) },
-                                set: { _ in settings.toggleAlwaysApp(bundleID) })
-                            ) {
-                                HStack(spacing: 6) {
-                                    if let icon = app.icon {
-                                        Image(nsImage: icon).resizable().frame(width: 16, height: 16)
-                                    }
-                                    Text(app.localizedName ?? bundleID)
-                                }
-                            }
-                        }
-                    }
-                    ForEach(missingSelected, id: \.self) { bundleID in
-                        Toggle(isOn: Binding(
-                            get: { true }, set: { _ in settings.toggleAlwaysApp(bundleID) })
-                        ) {
-                            Text(bundleID).foregroundStyle(.secondary)
-                        }
+        let selected = settings.alwaysApps.sorted()
+        if selected.isEmpty {
+            Text("No apps yet.").foregroundStyle(.secondary)
+        }
+        ForEach(selected, id: \.self) { bundleID in
+            HStack(spacing: 8) {
+                if let icon = icon(for: bundleID) {
+                    Image(nsImage: icon).resizable().frame(width: 18, height: 18)
+                }
+                Text(name(for: bundleID))
+                Spacer()
+                Button {
+                    settings.toggleAlwaysApp(bundleID)
+                } label: {
+                    Image(systemName: "minus.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Remove")
+            }
+        }
+        Menu("Add App…") {
+            ForEach(candidates, id: \.processIdentifier) { app in
+                Button {
+                    if let id = app.bundleIdentifier { settings.toggleAlwaysApp(id) }
+                } label: {
+                    if let icon = app.icon {
+                        Label { Text(app.localizedName ?? "") } icon: { Image(nsImage: icon) }
+                    } else {
+                        Text(app.localizedName ?? "")
                     }
                 }
-                .padding(.vertical, 2)
             }
-            .frame(height: 110)
+            if candidates.isEmpty {
+                Text("No other apps running")
+            }
         }
         .onAppear(perform: reload)
     }
 
-    private var missingSelected: [String] {
-        let running = Set(apps.compactMap(\.bundleIdentifier))
-        return settings.alwaysApps.subtracting(running).sorted()
+    private var candidates: [NSRunningApplication] {
+        running.filter { app in
+            guard let id = app.bundleIdentifier else { return false }
+            return !settings.alwaysApps.contains(id)
+        }
     }
 
     private func reload() {
-        apps = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != nil }
+        running = NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != nil
+                && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
             .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
+    }
+
+    private func icon(for bundleID: String) -> NSImage? {
+        if let app = running.first(where: { $0.bundleIdentifier == bundleID }), let icon = app.icon {
+            return icon
+        }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+
+    private func name(for bundleID: String) -> String {
+        if let app = running.first(where: { $0.bundleIdentifier == bundleID }) {
+            return app.localizedName ?? bundleID
+        }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
+        return FileManager.default.displayName(atPath: url.path)
     }
 }
 
 // MARK: - Presets
 
-private struct PresetsTab: View {
+private struct PresetsPane: View {
     @ObservedObject var settings = Settings.shared
     @State private var selection: UUID?
 
@@ -281,29 +376,41 @@ private struct PresetsTab: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(preset.name)
-                            Text(summary(of: preset)).font(.footnote).foregroundStyle(.secondary)
+                            Text(effectSummary(grayscale: preset.grayscale, blur: preset.blurRadius,
+                                               dimming: preset.dimming, mode: preset.followMode))
+                                .font(.callout).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if settings.activePreset?.id == preset.id {
-                            Text("Active").font(.caption).foregroundStyle(.secondary)
+                        if settings.activePresetID == preset.id {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.tint)
+                                .help("Active")
                         }
                     }
+                    .padding(.vertical, 2)
                     .tag(preset.id)
                 }
             }
-            .frame(height: 170)
+            .frame(height: 190)
 
-            HStack(spacing: 8) {
-                Button { addPreset() } label: { Image(systemName: "plus") }
-                Button { deleteSelected() } label: { Image(systemName: "minus") }
-                    .disabled(selection == nil)
+            HStack(spacing: 6) {
+                ControlGroup {
+                    Button { addPreset() } label: { Image(systemName: "plus") }
+                        .help("Save current settings as a preset")
+                    Button { deleteSelected() } label: { Image(systemName: "minus") }
+                        .disabled(selection == nil)
+                        .help("Delete preset")
+                }
+                .controlGroupStyle(.navigation)
+                .frame(width: 70)
                 Spacer()
                 Button("Apply") {
                     if let preset = selectedPreset { settings.apply(preset) }
                 }
-                .disabled(selection == nil)
+                .disabled(selection == nil || settings.activePresetID == selection)
             }
-            .padding(10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
 
             Divider()
 
@@ -319,29 +426,26 @@ private struct PresetsTab: View {
                     }))
             } else {
                 Spacer()
-                Text("Select a preset to edit it, or add one from your current settings.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
+                Text("Select a preset to edit it, or press + to save the current settings as one.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
                 Spacer()
             }
         }
+        .onAppear(perform: selectDefault)
     }
 
     private var selectedPreset: Preset? {
         settings.presets.first { $0.id == selection }
     }
 
-    private func summary(of preset: Preset) -> String {
-        var parts = [percent(preset.grayscale) + " gray"]
-        if preset.blurRadius > 0.5 { parts.append(points(preset.blurRadius) + " blur") }
-        if preset.dimming > 0.005 { parts.append(percent(preset.dimming) + " dim") }
-        parts.append(preset.followMode == .focusedWindow ? "focused window" : "active app")
-        return parts.joined(separator: " · ")
+    private func selectDefault() {
+        if selection == nil { selection = settings.activePresetID ?? settings.presets.first?.id }
     }
 
     private func addPreset() {
-        let preset = settings.captureCurrentAsPreset(named: "Preset \(settings.presets.count + 1)")
-        selection = preset.id
+        selection = settings.captureCurrentAsPreset().id
     }
 
     private func deleteSelected() {
@@ -357,10 +461,13 @@ private struct PresetEditor: View {
     var body: some View {
         Form {
             TextField("Name", text: $preset.name)
-            LabeledSlider(title: "Grayscale", value: $preset.grayscale, range: 0...1, format: percent)
-            LabeledSlider(title: "Blur", value: $preset.blurRadius, range: 0...40, format: points)
-            LabeledSlider(title: "Dimming", value: $preset.dimming, range: 0...0.9, format: percent)
-            Picker("Follow", selection: $preset.followMode) {
+            LabeledSlider(title: "Grayscale", value: $preset.grayscale,
+                          range: Settings.grayscaleRange, format: percent)
+            LabeledSlider(title: "Blur", value: $preset.blurRadius,
+                          range: Settings.blurRange, format: points)
+            LabeledSlider(title: "Dimming", value: $preset.dimming,
+                          range: Settings.dimmingRange, format: percent)
+            Picker("Keep in color", selection: $preset.followMode) {
                 ForEach(FollowMode.allCases, id: \.self) { Text($0.displayName).tag($0) }
             }
         }
@@ -370,50 +477,56 @@ private struct PresetEditor: View {
 
 // MARK: - Automation
 
-private struct AutomationTab: View {
+private struct AutomationPane: View {
     @ObservedObject var settings = Settings.shared
     @State private var selection: UUID?
     @State private var hasFocusAccess = FocusModeMonitor.hasAccess
 
     var body: some View {
         VStack(spacing: 0) {
-            if !hasFocusAccess {
-                HStack(spacing: 8) {
-                    Image(systemName: "lock")
-                    Text("Focus-mode rules need Full Disk Access to read which macOS Focus is active. Time rules work without it.")
-                        .font(.footnote)
-                    Spacer()
-                    Button("Grant…") { FocusModeMonitor.openFullDiskAccessSettings() }
-                }
-                .padding(10)
-                Divider()
-            }
-
             List(selection: $selection) {
                 ForEach(settings.automationRules) { rule in
-                    HStack {
+                    HStack(spacing: 10) {
                         Toggle("", isOn: Binding(
                             get: { rule.isEnabled },
                             set: { newValue in update(rule.id) { $0.isEnabled = newValue } }))
                             .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
                         Text(describe(rule))
+                            .foregroundStyle(rule.isEnabled ? .primary : .secondary)
+                        Spacer()
+                        if settings.automationState?.activeRuleID == rule.id {
+                            Text("Active").font(.caption).foregroundStyle(.tint)
+                        }
                     }
+                    .padding(.vertical, 2)
                     .tag(rule.id)
                 }
                 if settings.automationRules.isEmpty {
-                    Text("No rules yet. Add one to switch presets by time of day or macOS Focus mode.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("No rules yet. Rules switch presets by time of day or by macOS Focus mode.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
             }
-            .frame(height: hasFocusAccess ? 150 : 110)
+            .frame(height: 170)
 
-            HStack(spacing: 8) {
-                Button { addRule() } label: { Image(systemName: "plus") }
-                Button { deleteSelected() } label: { Image(systemName: "minus") }
-                    .disabled(selection == nil)
+            HStack(spacing: 6) {
+                ControlGroup {
+                    Button { addRule() } label: { Image(systemName: "plus") }
+                    Button { deleteSelected() } label: { Image(systemName: "minus") }
+                        .disabled(selection == nil)
+                }
+                .controlGroupStyle(.navigation)
+                .frame(width: 70)
                 Spacer()
+                if !hasFocusAccess {
+                    Text("Focus-mode rules need Full Disk Access.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    Button("Grant…") { FocusModeMonitor.openFullDiskAccessSettings() }
+                }
             }
-            .padding(10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
 
             Divider()
 
@@ -423,13 +536,17 @@ private struct AutomationTab: View {
                     set: { updated in update(updated.id) { $0 = updated } }))
             } else {
                 Spacer()
-                Text("Select a rule to edit it.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
+                Text(settings.automationRules.isEmpty
+                     ? "Press + to add a rule."
+                     : "Select a rule to edit it.")
+                    .font(.callout).foregroundStyle(.secondary)
                 Spacer()
             }
         }
-        .onAppear { hasFocusAccess = FocusModeMonitor.hasAccess }
+        .onAppear {
+            hasFocusAccess = FocusModeMonitor.hasAccess
+            if selection == nil { selection = settings.automationRules.first?.id }
+        }
     }
 
     private func update(_ id: UUID, _ change: (inout AutomationRule) -> Void) {
@@ -458,7 +575,7 @@ private struct AutomationTab: View {
         let when: String
         switch rule.trigger {
         case .timeRange(let start, let end, let weekdays):
-            when = "\(RuleEditor.weekdaySummary(weekdays)) \(RuleEditor.clock(start))–\(RuleEditor.clock(end))"
+            when = "\(Weekdays.summary(weekdays)), \(Clock.string(start))–\(Clock.string(end))"
         case .focusMode(let name):
             when = "Focus “\(name)”"
         }
@@ -488,24 +605,25 @@ private struct RuleEditor: View {
 
             switch rule.trigger {
             case .timeRange(let start, let end, let weekdays):
-                DatePicker("From", selection: minutesBinding(start) { s in
+                DatePicker("From", selection: Clock.binding(start) { s in
                     rule.trigger = .timeRange(start: s, end: end, weekdays: weekdays)
                 }, displayedComponents: .hourAndMinute)
-                DatePicker("Until", selection: minutesBinding(end) { e in
+                DatePicker("Until", selection: Clock.binding(end) { e in
                     rule.trigger = .timeRange(start: start, end: e, weekdays: weekdays)
                 }, displayedComponents: .hourAndMinute)
-                HStack(spacing: 4) {
-                    Text("On").frame(width: 60, alignment: .leading)
-                    ForEach(Self.weekdayOrder, id: \.self) { day in
-                        Toggle(Self.weekdayNames[day - 1], isOn: Binding(
-                            get: { weekdays.contains(day) },
-                            set: { on in
-                                var set = weekdays
-                                if on { set.insert(day) } else { set.remove(day) }
-                                rule.trigger = .timeRange(start: start, end: end, weekdays: set)
-                            }))
-                            .toggleStyle(.button)
-                            .controlSize(.small)
+                LabeledContent("On") {
+                    HStack(spacing: 3) {
+                        ForEach(Weekdays.order, id: \.self) { day in
+                            Toggle(Weekdays.shortName(day), isOn: Binding(
+                                get: { weekdays.contains(day) },
+                                set: { on in
+                                    var set = weekdays
+                                    if on { set.insert(day) } else { set.remove(day) }
+                                    rule.trigger = .timeRange(start: start, end: end, weekdays: set)
+                                }))
+                                .toggleStyle(.button)
+                                .controlSize(.small)
+                        }
                     }
                 }
             case .focusMode(let name):
@@ -514,11 +632,12 @@ private struct RuleEditor: View {
                     TextField("Focus mode name", text: Binding(
                         get: { name }, set: { rule.trigger = .focusMode(name: $0) }))
                 } else {
+                    // Keep whatever the rule says even if it's not in the list.
+                    let options = known.contains(name) ? known : known + [name]
                     Picker("Focus mode", selection: Binding(
-                        get: { known.contains(name) ? name : known[0] },
-                        set: { rule.trigger = .focusMode(name: $0) })
+                        get: { name }, set: { rule.trigger = .focusMode(name: $0) })
                     ) {
-                        ForEach(known, id: \.self) { Text($0).tag($0) }
+                        ForEach(options, id: \.self) { Text($0).tag($0) }
                     }
                 }
             }
@@ -559,71 +678,88 @@ private struct RuleEditor: View {
                 rule.action = UUID(uuidString: value).map { .applyPreset(id: $0) } ?? .disable
             })
     }
+}
 
-    private func minutesBinding(_ minutes: Int, set: @escaping (Int) -> Void) -> Binding<Date> {
+/// Locale-aware helpers for the rule editor and summaries.
+private enum Clock {
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    static func date(minutes: Int) -> Date {
+        Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
+    }
+
+    static func string(_ minutes: Int) -> String {
+        formatter.string(from: date(minutes: minutes))
+    }
+
+    static func binding(_ minutes: Int, set: @escaping (Int) -> Void) -> Binding<Date> {
         Binding(
-            get: {
-                Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
-            },
+            get: { date(minutes: minutes) },
             set: { date in
                 let components = Calendar.current.dateComponents([.hour, .minute], from: date)
                 set((components.hour ?? 0) * 60 + (components.minute ?? 0))
             })
     }
+}
 
-    static let weekdayOrder = [2, 3, 4, 5, 6, 7, 1]  // Mon…Sun in Calendar numbering
-    static let weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-    static func clock(_ minutes: Int) -> String {
-        String(format: "%02d:%02d", minutes / 60, minutes % 60)
+private enum Weekdays {
+    /// Calendar weekday numbers in the user's first-weekday order.
+    static var order: [Int] {
+        let first = Calendar.current.firstWeekday
+        return (0..<7).map { (first - 1 + $0) % 7 + 1 }
     }
 
-    static func weekdaySummary(_ days: Set<Int>) -> String {
+    static func shortName(_ day: Int) -> String {
+        Calendar.current.veryShortWeekdaySymbols[day - 1]
+    }
+
+    static func summary(_ days: Set<Int>) -> String {
         if days.isEmpty || days.count == 7 { return "Every day" }
         if days == [2, 3, 4, 5, 6] { return "Weekdays" }
         if days == [1, 7] { return "Weekends" }
-        return weekdayOrder.filter(days.contains).map { weekdayNames[$0 - 1] }.joined(separator: " ")
+        return order.filter(days.contains).map { Calendar.current.shortWeekdaySymbols[$0 - 1] }
+            .joined(separator: " ")
     }
 }
 
 // MARK: - About
 
-private struct AboutTab: View {
+private struct AboutPane: View {
     private var version: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         return short.map { "Version \($0)" } ?? "Development build"
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             Spacer()
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
-                .frame(width: 72, height: 72)
+                .frame(width: 84, height: 84)
             Text("Sharp Focus").font(.title2.bold())
             Text(version).font(.callout).foregroundStyle(.secondary)
             Text("Only the window you're working in stays in color.")
-                .font(.subheadline).foregroundStyle(.secondary)
-            HStack(spacing: 24) {
-                Link(destination: URL(string: "https://github.com/ac40/sharpfocus")!) {
-                    Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                }
-                Link(destination: URL(string: "https://acrichter.com")!) {
-                    Label("Website", systemImage: "globe")
-                }
-                Link(destination: URL(string: "https://github.com/ac40/sharpfocus/issues")!) {
-                    Label("Report an issue", systemImage: "ladybug")
-                }
+                .font(.body).foregroundStyle(.secondary)
+                .padding(.top, 2)
+            HStack(spacing: 22) {
+                Link("GitHub", destination: URL(string: "https://github.com/ac40/sharpfocus")!)
+                Link("Website", destination: URL(string: "https://acrichter.com")!)
+                Link("Report an issue", destination: URL(string: "https://github.com/ac40/sharpfocus/issues")!)
             }
-            .padding(.top, 6)
+            .font(.callout)
+            .padding(.top, 10)
             Spacer()
-            Text("Made by Aaron Richter. MIT licensed.")
-                .font(.footnote).foregroundStyle(.secondary)
-            Text("Grayscale and blur use an undocumented macOS compositing API (CABackdropLayer). Apple could change it in a future release; if that happens the app falls back to dimming only.")
-                .font(.footnote).foregroundStyle(.tertiary)
+            Text("Made by Aaron Richter · MIT License")
+                .font(.callout).foregroundStyle(.secondary)
+            Text("Grayscale and blur rely on an undocumented macOS compositing API. If a future release changes it, Sharp Focus falls back to dimming only.")
+                .font(.caption).foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 30)
-            Spacer().frame(height: 6)
+                .padding(.horizontal, 36)
+                .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

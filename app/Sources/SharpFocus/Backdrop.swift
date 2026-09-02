@@ -21,9 +21,8 @@ enum Backdrop {
         return filterClass.perform(filterSelector, with: type)?.takeUnretainedValue() as? NSObject
     }
 
-    static var isAvailable: Bool {
-        layerClass != nil && makeFilter("colorSaturate") != nil
-    }
+    /// Probed once per launch; the answer can't change while running.
+    static let isAvailable: Bool = layerClass != nil && makeFilter("colorSaturate") != nil
 
     static func makeLayer() -> CALayer? {
         guard let layer = layerClass?.init() else { return nil }

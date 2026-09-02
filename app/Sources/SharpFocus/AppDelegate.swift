@@ -5,18 +5,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let overlays = OverlayController()
     private let tracker = FocusTracker()
-    private lazy var automation = AutomationEngine(focusProvider: FocusModeMonitor.shared)
+    private let automation = AutomationEngine()
 
     private var enableItem: NSMenuItem!
     private var snoozeItem: NSMenuItem!
     private let snoozeMenu = NSMenu()
     private let presetsMenu = NSMenu()
-    private var pinItem: NSMenuItem!
     private var clearPinsItem: NSMenuItem!
-    private var unavailableItem: NSMenuItem!
 
-    private var snoozeUntil: Date?
     private var snoozeTimer: Timer?
+    private var applyScheduled = false
 
     // MARK: - Lifecycle
 
@@ -34,14 +32,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         tracker.onUpdate = { [weak self] holes in
             self?.overlays.setHoles(holes)
         }
-
-        // Mission Control & friends animate every window; hiding the overlay
-        // for the duration removes our compositing cost from that animation.
+        // Mission Control & friends animate every window; suppressing the
+        // overlay for the duration keeps that animation smooth.
         tracker.onMissionControlChange = { [weak self] active in
-            guard let self, Settings.shared.enabled, Settings.shared.pauseInMissionControl
-            else { return }
-            NSLog("SharpFocus: Mission Control \(active ? "entered — overlay paused" : "left — overlay resumed")")
-            active ? self.overlays.hide() : self.overlays.show()
+            guard let self else { return }
+            self.overlays.isSuppressed = active && Settings.shared.pauseInMissionControl
+            if Settings.shared.pauseInMissionControl {
+                NSLog("SharpFocus: Mission Control \(active ? "entered — overlay paused" : "left — overlay resumed")")
+            }
         }
 
         NotificationCenter.default.addObserver(
@@ -54,24 +52,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !Backdrop.isAvailable {
             NSLog("SharpFocus: CABackdropLayer unavailable — dimming only")
         }
-        if Settings.shared.enabled {
-            activateOverlay()
-        }
+        applySettings()
         automation.start()
+    }
+
+    // MARK: - Applying state
+
+    /// Everything downstream of Settings is derived here, coalesced to one
+    /// pass per run-loop turn no matter how many values changed.
+    @objc private func settingsChanged() {
+        guard !applyScheduled else { return }
+        applyScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            self?.applyScheduled = false
+            self?.applySettings()
+        }
+    }
+
+    private func applySettings() {
+        let settings = Settings.shared
+        syncSnoozeTimer()
+
+        let shouldRun = settings.isEffectivelyEnabled
+        if shouldRun, !overlays.isActive {
+            overlays.rebuild()
+            overlays.show()
+            tracker.start()
+        } else if !shouldRun, overlays.isActive {
+            tracker.stop()
+            overlays.tearDown()
+        } else if shouldRun {
+            overlays.applyAppearance()
+            tracker.poll(force: true)
+        }
+        overlays.isSuppressed = settings.pauseInMissionControl && tracker.missionControlActive
+
+        automation.evaluate()
         refreshMenuState()
     }
 
-    // MARK: - Overlay activation
-
-    private func activateOverlay() {
+    @objc private func screensChanged() {
+        guard overlays.isActive else { return }
         overlays.rebuild()
         overlays.show()
-        tracker.start()
+        tracker.poll(force: true)
     }
 
-    private func deactivateOverlay() {
-        tracker.stop()
-        overlays.tearDown()
+    // MARK: - Snooze
+
+    private func snooze(minutes: Int) -> String {
+        let settings = Settings.shared
+        guard settings.enabled else { return "not enabled — nothing to snooze" }
+        let clamped = min(max(minutes, 1), 24 * 60)
+        settings.snoozedUntil = Date().addingTimeInterval(TimeInterval(clamped * 60))
+        NSLog("SharpFocus: snoozed for \(clamped) min")
+        return "snoozed \(clamped) min"
+    }
+
+    private func syncSnoozeTimer() {
+        let settings = Settings.shared
+        guard let until = settings.snoozedUntil else {
+            snoozeTimer?.invalidate()
+            snoozeTimer = nil
+            return
+        }
+        if until <= Date() {
+            settings.snoozedUntil = nil
+            return
+        }
+        guard snoozeTimer?.fireDate != until else { return }
+        snoozeTimer?.invalidate()
+        let timer = Timer(fire: until, interval: 0, repeats: false) { _ in
+            // Just lift the snooze; whatever `enabled` is now decides the rest.
+            Settings.shared.snoozedUntil = nil
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        snoozeTimer = timer
     }
 
     // MARK: - Status item & menu
@@ -84,6 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let menu = NSMenu()
         menu.delegate = self
+        menu.autoenablesItems = false
 
         enableItem = menu.addItem(
             withTitle: "Enable Sharp Focus", action: #selector(toggleEnabled), keyEquivalent: "f")
@@ -100,7 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         presetsItem.submenu = presetsMenu
         presetsMenu.delegate = self
 
-        pinItem = menu.addItem(
+        let pinItem = menu.addItem(
             withTitle: "Pin Focused Window", action: #selector(pinFocusedWindow), keyEquivalent: "p")
         pinItem.keyEquivalentModifierMask = [.command, .option, .control]
         pinItem.target = self
@@ -111,14 +168,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        unavailableItem = menu.addItem(
-            withTitle: "Grayscale & blur unavailable on this macOS — dimming only",
-            action: nil, keyEquivalent: "")
-        unavailableItem.isEnabled = false
-        unavailableItem.isHidden = Backdrop.isAvailable
+        if !Backdrop.isAvailable {
+            let warning = menu.addItem(
+                withTitle: "Grayscale & blur unavailable on this macOS — dimming only",
+                action: nil, keyEquivalent: "")
+            warning.isEnabled = false
+        }
 
         let settingsItem = menu.addItem(
-            withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+            withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: "")
         settingsItem.target = self
 
         let quit = menu.addItem(
@@ -141,19 +199,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshMenuState() {
         let settings = Settings.shared
-        enableItem.state = settings.enabled ? .on : .off
-        if let until = snoozeUntil {
+        enableItem.state = settings.isEffectivelyEnabled ? .on : .off
+
+        if let until = settings.snoozedUntil, settings.isSnoozed {
             snoozeItem.title = "Snoozed until \(Self.timeFormatter.string(from: until))"
+            snoozeItem.isEnabled = true
         } else {
             snoozeItem.title = "Snooze"
+            snoozeItem.isEnabled = settings.enabled
         }
-        snoozeItem.isEnabled = settings.enabled || snoozeUntil != nil
 
         let pinCount = tracker.pinnedWindowIDs.count
         clearPinsItem.isHidden = pinCount == 0
         clearPinsItem.title = "Clear Pinned Windows (\(pinCount))"
 
-        statusItem.button?.appearsDisabled = !settings.enabled
+        statusItem.button?.appearsDisabled = !settings.isEffectivelyEnabled
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -177,7 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func rebuildPresetsMenu() {
         presetsMenu.removeAllItems()
         let settings = Settings.shared
-        let active = settings.activePreset?.id
+        let active = settings.activePresetID
         for preset in settings.presets {
             let item = NSMenuItem(
                 title: preset.name, action: #selector(selectPreset(_:)), keyEquivalent: "")
@@ -202,7 +262,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func rebuildSnoozeMenu() {
         snoozeMenu.removeAllItems()
-        if snoozeUntil != nil {
+        if Settings.shared.isSnoozed {
             let resume = snoozeMenu.addItem(
                 withTitle: "Resume Now", action: #selector(resumeFromSnooze), keyEquivalent: "")
             resume.target = self
@@ -219,7 +279,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func toggleEnabled() {
-        Settings.shared.enabled.toggle()
+        let settings = Settings.shared
+        if settings.isSnoozed {
+            settings.snoozedUntil = nil   // "turn on" while snoozed = resume
+        } else {
+            settings.enabled.toggle()
+        }
     }
 
     @objc private func selectPreset(_ sender: NSMenuItem) {
@@ -230,8 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func saveCurrentAsPreset() {
-        let settings = Settings.shared
-        _ = settings.captureCurrentAsPreset(named: "Preset \(settings.presets.count + 1)")
+        Settings.shared.captureCurrentAsPreset()
         SettingsWindowController.shared.show(tab: .presets)
     }
 
@@ -245,12 +309,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func snoozeSelected(_ sender: NSMenuItem) {
         guard let minutes = sender.representedObject as? Int else { return }
-        snooze(minutes: minutes)
+        _ = snooze(minutes: minutes)
     }
 
     @objc private func resumeFromSnooze() {
-        cancelSnooze()
-        Settings.shared.enabled = true
+        Settings.shared.snoozedUntil = nil
     }
 
     @objc private func pinFocusedWindow() {
@@ -261,30 +324,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func clearPinnedWindows() {
         tracker.clearPinnedWindows()
         refreshMenuState()
-    }
-
-    // MARK: - Snooze
-
-    private func snooze(minutes: Int) {
-        cancelSnooze()
-        let until = Date().addingTimeInterval(TimeInterval(minutes * 60))
-        snoozeUntil = until
-        Settings.shared.enabled = false
-        let timer = Timer(fire: until, interval: 0, repeats: false) { [weak self] _ in
-            self?.snoozeUntil = nil
-            self?.snoozeTimer = nil
-            Settings.shared.enabled = true
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        snoozeTimer = timer
-        NSLog("SharpFocus: snoozed for \(minutes) min")
-        refreshMenuState()
-    }
-
-    private func cancelSnooze() {
-        snoozeTimer?.invalidate()
-        snoozeTimer = nil
-        snoozeUntil = nil
     }
 
     // MARK: - Remote control (sfctl + sharpfocus:// URLs)
@@ -321,13 +360,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = Settings.shared
         switch command {
         case .setEnabled(let on):
-            if on { cancelSnooze() }
-            settings.enabled = on
+            settings.batch {
+                settings.snoozedUntil = nil
+                settings.enabled = on
+            }
             return "enabled=\(on)"
         case .toggle:
-            if !settings.enabled { cancelSnooze() }
-            settings.enabled.toggle()
-            return "enabled=\(settings.enabled)"
+            toggleEnabled()
+            return "enabled=\(settings.isEffectivelyEnabled)"
         case .grayscale(let value):
             settings.grayscale = value
             return "grayscale=\(settings.grayscale)"
@@ -341,46 +381,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             settings.followMode = mode
             return "mode=\(mode.rawValue)"
         case .preset(let name):
-            guard let preset = settings.presets.first(where: {
-                $0.name.caseInsensitiveCompare(name) == .orderedSame
-            }) else { return "no preset named '\(name)'" }
-            settings.apply(preset)
-            if !settings.enabled { cancelSnooze(); settings.enabled = true }
+            let key = name.presetLookupKey
+            guard let preset = settings.presets.first(where: { $0.name.presetLookupKey == key })
+            else { return "no preset named '\(name)'" }
+            settings.batch {
+                settings.apply(preset)
+                settings.snoozedUntil = nil
+                settings.enabled = true
+            }
             return "preset=\(preset.name)"
         case .snooze(let minutes):
-            snooze(minutes: max(1, minutes))
-            return "snoozed \(minutes) min"
+            return snooze(minutes: minutes)
         case .pauseInMissionControl(let on):
             settings.pauseInMissionControl = on
             return "mc-pause=\(on)"
-        case .openSettings:
-            SettingsWindowController.shared.show()
+        case .openSettings(let tab):
+            SettingsWindowController.shared.show(tab: tab.flatMap(SettingsTab.init(name:)))
             return "settings opened"
         }
-    }
-
-    // MARK: - Change handling
-
-    @objc private func settingsChanged() {
-        let settings = Settings.shared
-        if settings.enabled, overlays.windows.isEmpty {
-            activateOverlay()
-        } else if !settings.enabled, !overlays.windows.isEmpty {
-            deactivateOverlay()
-        } else if settings.enabled {
-            overlays.applyAppearance()
-            tracker.poll(force: true)
-        }
-        // Re-enabling by hand ends any running snooze.
-        if settings.enabled, snoozeUntil != nil {
-            cancelSnooze()
-        }
-        refreshMenuState()
-    }
-
-    @objc private func screensChanged() {
-        guard Settings.shared.enabled else { return }
-        deactivateOverlay()
-        activateOverlay()
     }
 }

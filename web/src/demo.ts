@@ -52,7 +52,8 @@ export const PRESETS: Record<string, Preset> = {
 
 /** Design-space size of the fake desktop; scaled to fit its container. */
 const STAGE_W = 1200;
-const STAGE_H = 760;
+/** Horizontal centre of the focused window, used when the stage has to pan. */
+const FOCUS_CENTER_X = 512;
 
 /* ── little markup helpers ─────────────────────────────────────────────── */
 
@@ -65,8 +66,8 @@ const lights = (): string =>
 /* ── window bodies ─────────────────────────────────────────────────────── */
 
 const CODE: string[] = [
-  `<span class="c">// occlusion-aware holes: a window above a focused one</span>`,
-  `<span class="c">// still gets filtered.</span>`,
+  `<span class="c">// occlusion-aware: a window sitting above a focused</span>`,
+  `<span class="c">// one still gets filtered.</span>`,
   `<span class="k">private func</span> <span class="f">rebuildMask</span>(<span class="p">for</span> screen: <span class="t">NSScreen</span>) {`,
   `  <span class="k">let</span> path = <span class="t">CGMutablePath</span>()`,
   `  path.<span class="f">addRect</span>(screen.frame)`,
@@ -79,7 +80,6 @@ const CODE: string[] = [
   `  }`,
   ``,
   `  mask.<span class="v">fillRule</span> = .<span class="v">evenOdd</span>`,
-  `  mask.<span class="v">path</span> = path`,
   `  overlay.<span class="v">layer</span>?.<span class="v">mask</span> = mask`,
   `}`,
 ];
@@ -113,10 +113,8 @@ const buildBody = (): string => `
   <div class="term">
     <p><span class="pr">~/dev/ember</span> <span class="cm">swift build -c release</span></p>
     <p class="dim">[1/6] Compiling Ember Backdrop.swift</p>
-    <p class="dim">[2/6] Compiling Ember FocusTracker.swift</p>
     <p class="dim">[3/6] Compiling Ember OverlayController.swift</p>
     <p class="warn">warning: 'CABackdropLayer' is a private API</p>
-    <p class="dim">[6/6] Linking Ember</p>
     <p class="ok">Build complete! (4.71s)</p>
     <p><span class="pr">~/dev/ember</span> <span class="cur"></span></p>
   </div>`;
@@ -143,7 +141,7 @@ const musicBody = (): string => `
     <div class="music-meta">
       <p class="tr">Sunset Diagonal</p>
       <p class="ar">Halogen Rivers</p>
-      <div class="wave">${times(28, (i) => `<i style="--h:${20 + ((i * 37) % 80)}%"></i>`)}</div>
+      <div class="wave">${times(20, (i) => `<i style="--h:${28 + ((i * 41) % 72)}%"></i>`)}</div>
       <div class="bar"><i></i></div>
       <div class="tx"><span>1:48</span><span>3:52</span></div>
       <div class="transport">
@@ -216,12 +214,12 @@ const calendarBody = (): string => {
 /* ── the windows ───────────────────────────────────────────────────────── */
 
 const WINDOWS: readonly WindowDef[] = [
-  { id: "browser", app: "Kestrel", title: "The Daily Byte — Kestrel", x: 380, y: 70, w: 640, h: 420, z: 1, dark: false, body: browserBody() },
-  { id: "chat", app: "Chatter", title: "Chatter", x: 60, y: 118, w: 296, h: 380, z: 2, dark: false, body: chatBody() },
-  { id: "calendar", app: "Almanac", title: "Almanac", x: 800, y: 330, w: 350, h: 290, z: 3, dark: false, body: calendarBody() },
-  { id: "build", app: "Ember", title: "build — Ember", x: 640, y: 430, w: 380, h: 210, z: 4, dark: true, body: buildBody() },
-  { id: "music", app: "Turntable", title: "Turntable", x: 90, y: 430, w: 310, h: 196, z: 5, dark: true, body: musicBody() },
-  { id: "editor", app: "Ember", title: "OverlayController.swift — Ember", x: 250, y: 190, w: 560, h: 380, z: 6, dark: true, body: editorBody() },
+  { id: "browser", app: "Kestrel", title: "The Daily Byte — Kestrel", x: 430, y: 56, w: 640, h: 392, z: 1, dark: false, body: browserBody() },
+  { id: "chat", app: "Chatter", title: "Chatter", x: 40, y: 100, w: 296, h: 372, z: 2, dark: false, body: chatBody() },
+  { id: "calendar", app: "Almanac", title: "Almanac", x: 840, y: 320, w: 330, h: 286, z: 3, dark: false, body: calendarBody() },
+  { id: "build", app: "Ember", title: "build — Ember", x: 610, y: 514, w: 380, h: 174, z: 4, dark: true, body: buildBody() },
+  { id: "music", app: "Turntable", title: "Turntable", x: 62, y: 516, w: 310, h: 160, z: 5, dark: true, body: musicBody() },
+  { id: "editor", app: "Ember", title: "OverlayController.swift — Ember", x: 240, y: 158, w: 545, h: 348, z: 6, dark: true, body: editorBody() },
 ];
 
 const APP_OF: Record<WindowId, string> = WINDOWS.reduce(
@@ -367,11 +365,20 @@ export function mountDemo(stage: HTMLElement, desktop: HTMLElement): Demo {
   tick();
   window.setInterval(tick, 20_000);
 
-  /* Scale the 1200×760 design space into whatever width we get. */
+  /* Scale the 1200×760 design space into whatever width we get. Below a
+     floor the desktop stops shrinking and the stage pans horizontally —
+     a 390px-wide phone would otherwise get an unreadable postage stamp. */
+  const panHint = document.getElementById("panHint");
   const fit = (): void => {
-    const s = stage.clientWidth / STAGE_W;
-    desktop.style.setProperty("--s", String(s));
-    stage.style.setProperty("--stage-h", `${STAGE_H * s}px`);
+    const floor = window.innerWidth < 720 ? 0.5 : 0;
+    const s = Math.max(stage.clientWidth / STAGE_W, floor);
+    stage.style.setProperty("--s", String(s));
+    const pannable = STAGE_W * s > stage.clientWidth + 2;
+    stage.classList.toggle("pannable", pannable);
+    if (panHint) panHint.hidden = !pannable;
+    if (pannable) {
+      stage.scrollLeft = (FOCUS_CENTER_X * s) - stage.clientWidth / 2;
+    }
   };
   fit();
   if (typeof ResizeObserver !== "undefined") {

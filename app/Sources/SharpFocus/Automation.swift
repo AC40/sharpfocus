@@ -1,95 +1,72 @@
 import AppKit
 
-/// Supplies the currently active macOS Focus mode name, if detectable.
-protocol FocusModeProviding: AnyObject {
-    /// e.g. "Work", "Do Not Disturb"; nil when no Focus is active or the
-    /// state can't be read on this system.
-    var currentFocusMode: String? { get }
-    /// Called (on main) whenever the focus mode may have changed.
-    var onChange: (() -> Void)? { get set }
-    func start()
-    func stop()
-}
-
 /// Evaluates automation rules (time ranges and Focus modes) and applies
 /// preset/disable actions. When the first rule activates it snapshots the
 /// manual state; when no rule matches anymore it restores that snapshot, so
-/// automation never permanently clobbers what the user had configured.
+/// automation never permanently clobbers what the user had configured. The
+/// snapshot is persisted (Settings.automationState) so this holds across
+/// relaunches too.
 final class AutomationEngine {
-    private struct Snapshot: Codable {
-        var enabled: Bool
-        var grayscale: Double
-        var blurRadius: Double
-        var dimming: Double
-        var followMode: FollowMode
-    }
-
-    private let focusProvider: FocusModeProviding?
+    private let monitor = FocusModeMonitor.shared
     private var timer: Timer?
-    private var activeRuleID: UUID?
-    private var snapshot: Snapshot?
-
-    init(focusProvider: FocusModeProviding?) {
-        self.focusProvider = focusProvider
-        focusProvider?.onChange = { [weak self] in self?.evaluate() }
-    }
 
     func start() {
         guard timer == nil else { return }
-        focusProvider?.start()
+        monitor.onChange = { [weak self] in self?.evaluate() }
+        monitor.start()
         let t = Timer(timeInterval: 30, repeats: true) { [weak self] _ in self?.evaluate() }
         RunLoop.main.add(t, forMode: .common)
         timer = t
         evaluate()
     }
 
-    func stop() {
-        timer?.invalidate()
-        timer = nil
-        focusProvider?.stop()
-    }
-
     func evaluate() {
         let settings = Settings.shared
-        let rules = settings.automationRules.filter(\.isEnabled)
-        let matching = rules.filter { matches($0.trigger) }
+        let matching = settings.automationRules.filter { $0.isEnabled && matches($0.trigger) }
 
         // Focus-mode rules take precedence over time rules; among equals the
         // later rule in the list wins.
         let winner = matching.last { isFocusTrigger($0.trigger) } ?? matching.last
-
-        guard winner?.id != activeRuleID else { return }
+        let state = settings.automationState
 
         if let winner {
-            if snapshot == nil {
-                snapshot = Snapshot(
-                    enabled: settings.enabled, grayscale: settings.grayscale,
-                    blurRadius: settings.blurRadius, dimming: settings.dimming,
-                    followMode: settings.followMode)
+            if let state, state.activeRuleID == winner.id,
+               state.userOverrode || state.action == winner.action {
+                return  // already applied (or the user took over)
             }
-            activeRuleID = winner.id
+            // Chained rules keep the original snapshot; after a user override
+            // the current state is the new baseline.
+            let snapshot: EffectSnapshot? = (state?.userOverrode == true)
+                ? EffectSnapshot(settings)
+                : (state?.snapshot ?? EffectSnapshot(settings))
+            settings.automationState = AutomationState(
+                activeRuleID: winner.id, action: winner.action, snapshot: snapshot)
             NSLog("SharpFocus: automation rule matched -> \(describe(winner.action))")
-            switch winner.action {
-            case .applyPreset(let id):
-                if let preset = settings.presets.first(where: { $0.id == id }) {
-                    settings.apply(preset)
-                    if !settings.enabled { settings.enabled = true }
+            automated {
+                switch winner.action {
+                case .applyPreset(let id):
+                    guard let preset = settings.presets.first(where: { $0.id == id }) else { return }
+                    settings.batch {
+                        settings.apply(preset)
+                        settings.enabled = true
+                    }
+                case .disable:
+                    settings.enabled = false
                 }
-            case .disable:
-                settings.enabled = false
             }
-        } else {
-            activeRuleID = nil
-            if let saved = snapshot {
-                snapshot = nil
+        } else if let state {
+            settings.automationState = nil
+            if let snapshot = state.snapshot {
                 NSLog("SharpFocus: automation ended — restoring previous state")
-                settings.grayscale = saved.grayscale
-                settings.blurRadius = saved.blurRadius
-                settings.dimming = saved.dimming
-                settings.followMode = saved.followMode
-                settings.enabled = saved.enabled
+                automated { snapshot.restore(into: settings) }
             }
         }
+    }
+
+    private func automated(_ body: () -> Void) {
+        Settings.shared.isAutomationWriting = true
+        body()
+        Settings.shared.isAutomationWriting = false
     }
 
     private func isFocusTrigger(_ trigger: AutomationRule.Trigger) -> Bool {
@@ -113,7 +90,7 @@ final class AutomationEngine {
                 return minutes >= start || minutes < end
             }
         case .focusMode(let name):
-            guard let current = focusProvider?.currentFocusMode else { return false }
+            guard let current = monitor.currentFocusMode else { return false }
             return current.caseInsensitiveCompare(name) == .orderedSame
         }
     }

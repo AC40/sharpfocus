@@ -181,12 +181,12 @@ main > section,
 }
 
 .hero-title {
-  font-size: clamp(2.5rem, 7.4vw, 5.1rem);
-  line-height: 0.97;
-  letter-spacing: -0.042em;
+  font-size: clamp(2.35rem, 6.3vw, 4.6rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
   font-weight: 800;
   margin: 0 0 24px;
-  max-width: 17ch;
+  max-width: 27ch;
 }
 
 .fade-word {
@@ -290,7 +290,7 @@ h2 {
   letter-spacing: -0.03em;
   font-weight: 700;
   margin: 0 0 18px;
-  max-width: 22ch;
+  max-width: 25ch;
 }
 .num {
   font-family: var(--mono);
@@ -387,9 +387,16 @@ pre .c {
   font-size: 14px;
   color: var(--ink-2);
 }
-.dl-alt code {
-  font-size: 12.5px;
-  word-break: break-all;
+.dl-alt {
+  margin-bottom: 8px;
+}
+.dl-code {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre;
+  overflow-x: auto;
 }
 .dl-notes {
   border: 1px solid var(--line);
@@ -485,13 +492,26 @@ pre .c {
 .stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 1200 / 760;
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid var(--line);
   background: #0b1220;
   box-shadow: var(--shadow-lg);
-  contain: paint;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.stage::-webkit-scrollbar {
+  display: none;
+}
+.stage.pannable {
+  cursor: grab;
+}
+
+.stage-inner {
+  position: relative;
+  width: calc(1200px * var(--s, 0.5));
+  height: calc(760px * var(--s, 0.5));
 }
 
 .desktop {
@@ -500,9 +520,18 @@ pre .c {
   left: 0;
   width: 1200px;
   height: 760px;
-  transform: scale(var(--s, 1));
+  transform: scale(var(--s, 0.5));
   transform-origin: top left;
   font-family: var(--sans);
+}
+
+.pan-hint {
+  margin: 12px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
 }
 
 .wallpaper {
@@ -587,7 +616,7 @@ pre .c {
 /* dock ------------------------------------------------------- */
 .dock {
   position: absolute;
-  bottom: 12px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 900;
@@ -605,8 +634,8 @@ pre .c {
 }
 .dk {
   display: block;
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   position: relative;
@@ -625,7 +654,7 @@ pre .c {
 .dock-sep {
   display: block;
   width: 1px;
-  height: 42px;
+  height: 38px;
   background: rgba(255, 255, 255, 0.28);
 }
 .d1 { background: linear-gradient(160deg, #4facfe, #00c2ff); }
@@ -806,10 +835,10 @@ pre .c {
 .ed-code {
   flex: 1;
   display: flex;
-  padding: 9px 0;
+  padding: 8px 0;
   font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 10.5px;
+  line-height: 1.55;
   overflow: hidden;
 }
 .ed-gutter {
@@ -854,10 +883,10 @@ pre .c {
 .term {
   height: 100%;
   background: #14161a;
-  padding: 10px 13px;
+  padding: 11px 13px;
   font-family: var(--mono);
   font-size: 10.5px;
-  line-height: 1.75;
+  line-height: 1.9;
   color: #c9d1d9;
 }
 .term p {
@@ -1006,14 +1035,14 @@ pre .c {
 .music {
   height: 100%;
   display: flex;
-  gap: 14px;
-  padding: 14px;
+  gap: 13px;
+  padding: 13px;
   background: linear-gradient(150deg, #2a2233, #14121a);
   color: #f2eee9;
 }
 .art {
-  width: 96px;
-  height: 96px;
+  width: 92px;
+  height: 92px;
   flex: none;
   border-radius: 8px;
   position: relative;
@@ -1067,14 +1096,14 @@ pre .c {
 .wave {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
-  height: 26px;
-  margin-bottom: 8px;
+  gap: 3px;
+  height: 28px;
+  margin-bottom: 9px;
 }
 .wave i {
   flex: 1;
   height: var(--h);
-  border-radius: 1px;
+  border-radius: 2px;
   background: linear-gradient(180deg, #ff6b35, #f7c948);
   opacity: 0.9;
 }

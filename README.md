@@ -61,7 +61,7 @@ The menu bar icon is a half-filled circle; it dims when the effect is off.
 | Presets | Apply a saved preset, save the current settings as a new one, or open the preset editor. |
 | Pin Focused Window | `⌃⌥⌘P`. Keeps that window in color even when it isn't focused. |
 | Clear Pinned Windows | Appears once something is pinned. |
-| Settings… | `⌘,` |
+| Settings… | Opens the settings window. |
 
 The effect itself lives in **Settings → Effect**:
 
@@ -77,7 +77,7 @@ nothing.
 - *All windows of active app* (default) — every window of the frontmost app.
 - *Focused window only* — just the frontmost window of the frontmost app.
 
-**Always in focus** is a list of running apps whose windows never get filtered.
+**Always in color** (Settings → Effect) is a list of apps whose windows never get filtered.
 A music player or a chat window you want to keep an eye on. It's matched by
 bundle identifier, so it survives restarts.
 

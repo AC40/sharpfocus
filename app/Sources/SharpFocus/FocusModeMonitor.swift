@@ -5,7 +5,7 @@ import AppKit
 /// Focus; these files are what every current tool uses. Reading them requires
 /// Full Disk Access on macOS 14+, so this is strictly opt-in: without access
 /// the monitor reports nil and the UI offers to open the right settings pane.
-final class FocusModeMonitor: FocusModeProviding {
+final class FocusModeMonitor {
     static let shared = FocusModeMonitor()
     static let isSupported = true
 
@@ -23,8 +23,9 @@ final class FocusModeMonitor: FocusModeProviding {
     private let queue = DispatchQueue(label: "sharpfocus.focusmode")
 
     /// True when the database is readable (i.e. Full Disk Access is granted).
+    /// `access(2)` is TCC-gated too, so this needs no actual read.
     static var hasAccess: Bool {
-        (try? Data(contentsOf: assertionsURL)) != nil
+        FileManager.default.isReadableFile(atPath: assertionsURL.path)
     }
 
     static func openFullDiskAccessSettings() {
@@ -32,9 +33,12 @@ final class FocusModeMonitor: FocusModeProviding {
         NSWorkspace.shared.open(url)
     }
 
-    /// Names of all configured Focus modes, for the rule editor.
-    var knownModes: [String] {
-        guard let configs = Self.modeConfigurations() else { return [] }
+    /// Names of all configured Focus modes, for the rule editor. Refreshed
+    /// together with the active mode.
+    private(set) var knownModes: [String] = []
+
+    private static func loadKnownModes() -> [String] {
+        guard let configs = modeConfigurations() else { return [] }
         return configs.values
             .compactMap { ($0["mode"] as? [String: Any])?["name"] as? String }
             .sorted()
@@ -72,19 +76,25 @@ final class FocusModeMonitor: FocusModeProviding {
 
     private func scheduleRefresh() {
         pendingRefresh?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            DispatchQueue.main.async { self?.refresh() }
-        }
+        let work = DispatchWorkItem { [weak self] in self?.refresh() }
         pendingRefresh = work
         queue.asyncAfter(deadline: .now() + 0.15, execute: work)
     }
 
     private func refresh() {
-        let mode = Self.readActiveModeName()
-        guard mode != currentFocusMode else { return }
-        currentFocusMode = mode
-        NSLog("SharpFocus: Focus mode is now \(mode ?? "none")")
-        onChange?()
+        // File I/O off the main thread; publish on main.
+        queue.async { [weak self] in
+            let mode = Self.readActiveModeName()
+            let modes = Self.loadKnownModes()
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.knownModes = modes
+                guard mode != self.currentFocusMode else { return }
+                self.currentFocusMode = mode
+                NSLog("SharpFocus: Focus mode is now \(mode ?? "none")")
+                self.onChange?()
+            }
+        }
     }
 
     // MARK: - Parsing

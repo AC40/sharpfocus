@@ -18,7 +18,7 @@ final class FocusTracker {
     /// Fired when Mission Control / App Exposé / Launchpad becomes active or
     /// inactive (detected via Dock-owned windows at elevated layers).
     var onMissionControlChange: ((Bool) -> Void)?
-    private(set) var missionControlActive = false
+    private(set) var missionControlActive = false  // read by AppDelegate for suppression
 
     /// Individually pinned windows (session-only; window IDs don't survive relaunches).
     private(set) var pinnedWindowIDs: Set<CGWindowID> = []
@@ -34,6 +34,11 @@ final class FocusTracker {
         timer = t
         poll(force: true)
 
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in self?.screenSizes = NSScreen.screens.map { $0.frame.size } }
+
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil, queue: .main
@@ -47,6 +52,10 @@ final class FocusTracker {
         if let observer = activationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
             activationObserver = nil
+        }
+        if let observer = screenObserver {
+            NotificationCenter.default.removeObserver(observer)
+            screenObserver = nil
         }
     }
 
@@ -101,9 +110,11 @@ final class FocusTracker {
     /// at layers 18-20. The regular Dock bar is a thin strip at layer 20 and
     /// wallpaper windows sit at the desktop level (large negative layer), so
     /// "Dock window, elevated layer, covers most of a screen" is distinctive.
+    private lazy var screenSizes: [CGSize] = NSScreen.screens.map { $0.frame.size }
+    private var screenObserver: NSObjectProtocol?
+
     private func detectMissionControl(in list: [[String: Any]]) -> Bool {
-        let screenSizes = NSScreen.screens.map { $0.frame.size }
-        return list.contains { entry in
+        list.contains { entry in
             guard
                 let owner = entry[kCGWindowOwnerName as String] as? String, owner == "Dock",
                 let layer = entry[kCGWindowLayer as String] as? Int,
@@ -117,8 +128,11 @@ final class FocusTracker {
         }
     }
 
+    /// Frontmost window of the frontmost app, ignoring our own windows so the
+    /// pin hotkey never pins the settings window.
     private func frontmostWindow() -> CGWindowID? {
-        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              frontPID != getpid()
         else { return nil }
         return normalWindows(in: rawWindowList()).first { $0.pid == frontPID }?.id
     }
@@ -126,6 +140,10 @@ final class FocusTracker {
     func poll(force: Bool = false) {
         let settings = Settings.shared
         let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        // Read settings once per tick, not once per window.
+        let followMode = settings.followMode
+        let alwaysApps = settings.alwaysApps
+        let ownPID = getpid()
 
         let rawList = rawWindowList()
 
@@ -135,12 +153,9 @@ final class FocusTracker {
             onMissionControlChange?(missionControl)
         }
 
-        let alwaysPIDs = Set(
+        let alwaysPIDs: Set<pid_t> = alwaysApps.isEmpty ? [] : Set(
             NSWorkspace.shared.runningApplications
-                .filter { app in
-                    guard let id = app.bundleIdentifier else { return false }
-                    return settings.alwaysApps.contains(id)
-                }
+                .filter { app in app.bundleIdentifier.map(alwaysApps.contains) ?? false }
                 .map(\.processIdentifier)
         )
 
@@ -149,34 +164,36 @@ final class FocusTracker {
         // colored region is kept as disjoint rects so the even-odd mask stays
         // correct even with overlapping windows.
         var holes: [Hole] = []
-        var occluders: [CGRect] = []
-        var coloredRegion: [CGRect] = []
+        // Everything already seen in front of the current window, whether it
+        // was an occluder or an earlier colored piece — both block the hole.
+        var blockers: [CGRect] = []
         var focusedWindowTaken = false
         for window in normalWindows(in: rawList) {
             var include = false
-            if pinnedWindowIDs.contains(window.id) || alwaysPIDs.contains(window.pid) {
-                include = true
+            if window.pid == ownPID || pinnedWindowIDs.contains(window.id) || alwaysPIDs.contains(window.pid) {
+                include = true  // our own settings window is never filtered
             } else if window.pid == frontPID {
-                switch settings.followMode {
+                switch followMode {
                 case .frontApp:
                     include = true
                 case .focusedWindow:
-                    if !focusedWindowTaken {
-                        include = true
-                        focusedWindowTaken = true
-                    }
+                    include = !focusedWindowTaken
                 }
             }
+            // Whatever the reason it's included, the front app's first window
+            // counts as "the focused one".
+            if include, window.pid == frontPID { focusedWindowTaken = true }
+
             if include {
                 var pieces = [window.bounds]
-                for blocker in occluders + coloredRegion {
+                for blocker in blockers where blocker.intersects(window.bounds) {
                     pieces = Self.subtract(blocker, from: pieces)
                 }
-                coloredRegion.append(contentsOf: pieces)
                 let intact = pieces == [window.bounds]
                 holes.append(contentsOf: pieces.map { Hole(rect: $0, rounded: intact) })
+                blockers.append(contentsOf: pieces)
             } else {
-                occluders.append(window.bounds)
+                blockers.append(window.bounds)
             }
         }
 
