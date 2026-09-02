@@ -174,8 +174,7 @@
             own overlay — the same private compositing path that gives sidebars
             their vibrancy. The app never receives a frame. If a future macOS
             release breaks that path, it falls back to plain dimming, which
-            needs no permission either; the ScreenCaptureKit engine is there,
-            but you have to choose it.
+            needs no permission either.
           </p>
         </div>
       </section>
@@ -184,15 +183,16 @@
         <h2 id="f-auto"><span class="num">03</span> Three sliders, and rules that pull them for you</h2>
         <div class="feature-body">
           <p>
-            Grayscale, blur, dimming. They stack, they're live, and they're in
-            the menu bar so you never open a settings window to nudge one.
+            Grayscale, blur, dimming. They stack and they're live — drag a
+            slider in Settings and the desktop changes under your cursor.
+            Presets put a whole combination one click away in the menu bar.
           </p>
           <p>
             <strong>Deep Work</strong>, <strong>Soft Focus</strong> and
             <strong>Monochrome</strong> are there when you don't want to think
             about it. Automation ties them to a clock or to a macOS Focus mode:
             weekdays 09:00–13:00, or whenever Do Not Disturb comes on. An
-            <em>Always in Focus</em> list keeps chosen apps in color no matter
+            <em>Always in color</em> list keeps chosen apps in color no matter
             what — most people put their music player there.
           </p>
         </div>
@@ -238,7 +238,7 @@ open "sharpfocus://preset/deep-work"</code></pre>
           15&nbsp;Hz, so there's no Accessibility permission either.
         </p>
         <p class="how-caveat">
-          The fast path uses a private CoreAnimation API. It's been stable for
+          Grayscale and blur use a private CoreAnimation API. It's been stable for
           years, but it isn't guaranteed — availability is probed at launch and
           the app falls back on its own if it ever goes away.
         </p>
@@ -260,14 +260,17 @@ open "sharpfocus://preset/deep-work"</code></pre>
           </a>
           <p class="dl-alt">or build it yourself:</p>
           <pre class="dl-code"><code>git clone https://github.com/ac40/sharpfocus
-cd sharpfocus &amp;&amp; ./Scripts/bundle.sh</code></pre>
+cd sharpfocus/app &amp;&amp; ./Scripts/bundle.sh</code></pre>
         </div>
         <aside class="dl-notes">
           <h3>Before you open it</h3>
           <p>
             The build isn't notarized yet, so macOS will refuse it the first
-            time. Right-click the app → <strong>Open</strong> →
-            <strong>Open</strong>. Once, and never again.
+            time. Open it once, let macOS block it, then go to
+            <strong>System Settings → Privacy &amp; Security</strong> and
+            click <strong>Open Anyway</strong>. Or from a terminal:
+            <code>xattr -cr /Applications/SharpFocus.app</code>. Once, and
+            never again.
           </p>
           <h3>Release notes</h3>
           <p class="placeholder">Nothing here yet — the first tagged release will land on GitHub.</p>
