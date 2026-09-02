@@ -56,3 +56,12 @@ Coordinates are in design space (the 1200 × 760 box); the dock occupies roughly
 - Fonts are Schibsted Grotesk + JetBrains Mono, loaded from Google Fonts. If
   you'd rather self-host, drop the `<link>` in `index.html` and the system
   fallbacks in `--sans` / `--mono` take over cleanly.
+
+## Reusing the demo elsewhere
+
+`SharpFocusDemo.astro` is the interactive desktop demo (stage + controls) as a
+single, dependency-free Astro component. Copy the file into another Astro
+project and render `<SharpFocusDemo />`. Styles are namespaced under
+`.sf-demo`, no element IDs leak, several instances per page work. Props:
+`enabled`, `grayscale`, `blur`, `dim`, `hotkey`, `caption`, `class`. Fonts
+default to system fonts; set `--sf-sans` / `--sf-mono` on the host to change.
