@@ -6,8 +6,8 @@ import QuartzCore
 /// composited behind the hosting window (the same mechanism that powers
 /// NSVisualEffectView vibrancy). The app never sees any pixels and needs no
 /// screen recording permission. Being private API, it can break on macOS
-/// updates — availability is probed at runtime and the app falls back to the
-/// capture engine if anything is missing.
+/// updates — availability is probed at runtime; if it's gone, the overlay
+/// degrades to dimming-only and says so in the menu.
 enum Backdrop {
     static let layerClass: CALayer.Type? = NSClassFromString("CABackdropLayer") as? CALayer.Type
 
@@ -31,28 +31,5 @@ enum Backdrop {
         // flag NSVisualEffectView sets for behind-window blending).
         layer.setValue(true, forKey: "windowServerAware")
         return layer
-    }
-}
-
-extension FilterEngine {
-    /// Resolves the preferred engine to one that can actually run right now.
-    /// Fallback chain: backdrop -> capture -> dim.
-    static func resolve(_ preferred: FilterEngine) -> FilterEngine {
-        switch preferred {
-        case .backdrop:
-            return Backdrop.isAvailable ? .backdrop : resolve(.capture)
-        case .capture:
-            return CaptureEngine.hasScreenRecordingPermission ? .capture : .dim
-        case .dim:
-            return .dim
-        }
-    }
-
-    static var availability: [FilterEngine: Bool] {
-        [
-            .backdrop: Backdrop.isAvailable,
-            .capture: CaptureEngine.hasScreenRecordingPermission,
-            .dim: true,
-        ]
     }
 }

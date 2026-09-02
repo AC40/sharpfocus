@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sharp Focus — keep one window in color, fade the rest</title>
+    <meta
+      name="description"
+      content="A macOS menu bar app that greys out, blurs and dims every window except the one you're working in. No screen recording permission. Open source."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0e10" media="(prefers-color-scheme: dark)" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2a14 14 0 1 0 0 28A14 14 0 0 0 16 2Zm0 3.2A10.8 10.8 0 0 1 16 26.8Z' fill='%23ff4d17'/%3E%3Ccircle cx='16' cy='16' r='12.6' fill='none' stroke='%23ff4d17' stroke-width='2.4'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-head">
+      <a class="wordmark" href="#top" aria-label="Sharp Focus, home">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" class="mark-ring" />
+          <path d="M16 4.6a11.4 11.4 0 0 1 0 22.8Z" class="mark-fill" />
+        </svg>
+        <span>Sharp Focus</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="#try">Try it</a>
+        <a href="#how">How it works</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/ac40/sharpfocus" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <p class="eyebrow">macOS menu bar app · open source</p>
+        <h1 class="hero-title">
+          Keep your work in color.<br />
+          <span class="fade-word" id="fadeWord">Everything else</span> fades out.
+        </h1>
+        <p class="hero-sub">
+          Sharp Focus desaturates, blurs and dims every window except the one
+          you're actually in. It never records your screen — the window server
+          does the filtering for it.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#download">
+            Download for macOS
+            <svg viewBox="0 0 16 16" aria-hidden="true" class="btn-icon">
+              <path d="M8 1.5v9m0 0L4.5 7M8 10.5 11.5 7M2 13.5h12" />
+            </svg>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/ac40/sharpfocus" rel="noopener">
+            View on GitHub
+          </a>
+        </div>
+        <p class="hero-meta">
+          <span>macOS 14+</span><span>Universal</span><span>MIT licensed</span>
+          <span>No screen recording permission</span>
+        </p>
+      </section>
+
+      <!-- ── The demo ─────────────────────────────────────────── -->
+      <section class="demo" id="try" aria-labelledby="demo-h">
+        <div class="demo-head">
+          <h2 id="demo-h"><span class="num">01</span> A cluttered desktop, and the switch</h2>
+          <p>
+            Everything below is HTML and CSS pretending to be macOS. Flip the
+            switch, drag the sliders, click any window to move the focus. It
+            behaves like the real thing.
+          </p>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="desktop" id="desktop" role="group" aria-label="Simulated macOS desktop"></div>
+        </div>
+
+        <div class="controls" id="controls">
+          <div class="control-main">
+            <label class="switch" for="toggle">
+              <input type="checkbox" id="toggle" role="switch" />
+              <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+              <span class="switch-text">
+                <span class="switch-label">Sharp Focus</span>
+                <span class="switch-state" id="toggleState">Off</span>
+              </span>
+            </label>
+            <kbd class="hotkey" title="Try it — the real shortcut works on this page too">
+              <span>⌃</span><span>⌥</span><span>⌘</span><span>F</span>
+            </kbd>
+          </div>
+
+          <div class="control-grid">
+            <fieldset class="sliders">
+              <legend>Filter</legend>
+              <div class="slider-row">
+                <label for="grayscale">Grayscale</label>
+                <input type="range" id="grayscale" min="0" max="100" step="1" value="100" />
+                <output for="grayscale" id="grayscaleOut">100%</output>
+              </div>
+              <div class="slider-row">
+                <label for="blur">Blur</label>
+                <input type="range" id="blur" min="0" max="40" step="1" value="6" />
+                <output for="blur" id="blurOut">6 px</output>
+              </div>
+              <div class="slider-row">
+                <label for="dim">Dimming</label>
+                <input type="range" id="dim" min="0" max="90" step="1" value="35" />
+                <output for="dim" id="dimOut">35%</output>
+              </div>
+            </fieldset>
+
+            <div class="control-side">
+              <fieldset class="modes">
+                <legend>Keep in color</legend>
+                <div class="segmented">
+                  <label>
+                    <input type="radio" name="mode" value="window" checked />
+                    <span>Focused window</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="mode" value="app" />
+                    <span>All windows of the app</span>
+                  </label>
+                </div>
+                <p class="hint" id="modeHint">
+                  Ember has two windows open — switch modes to see both stay sharp.
+                </p>
+              </fieldset>
+
+              <fieldset class="presets">
+                <legend>Presets</legend>
+                <div class="chips" id="presets">
+                  <button type="button" data-preset="deep">Deep Work</button>
+                  <button type="button" data-preset="soft">Soft Focus</button>
+                  <button type="button" data-preset="mono">Monochrome</button>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+
+        <p class="caption">
+          The menu bar and the Dock stay untouched — the overlay sits below
+          them, exactly like the app does.
+        </p>
+      </section>
+
+      <!-- ── Features ─────────────────────────────────────────── -->
+      <section class="feature" aria-labelledby="f-perm">
+        <h2 id="f-perm"><span class="num">02</span> It never sees your screen</h2>
+        <div class="feature-body">
+          <p>
+            Most dimming tools ask for Screen Recording permission. That's a big
+            ask: it means handing an app the right to read every pixel you look
+            at, forever.
+          </p>
+          <p>
+            Sharp Focus asks the window server to desaturate what's behind its
+            own overlay — the same private compositing path that gives sidebars
+            their vibrancy. The app never receives a frame. If a future macOS
+            release breaks that path, it falls back to plain dimming, which
+            needs no permission either; the ScreenCaptureKit engine is there,
+            but you have to choose it.
+          </p>
+        </div>
+      </section>
+
+      <section class="feature" aria-labelledby="f-auto">
+        <h2 id="f-auto"><span class="num">03</span> Three sliders, and rules that pull them for you</h2>
+        <div class="feature-body">
+          <p>
+            Grayscale, blur, dimming. They stack, they're live, and they're in
+            the menu bar so you never open a settings window to nudge one.
+          </p>
+          <p>
+            <strong>Deep Work</strong>, <strong>Soft Focus</strong> and
+            <strong>Monochrome</strong> are there when you don't want to think
+            about it. Automation ties them to a clock or to a macOS Focus mode:
+            weekdays 09:00–13:00, or whenever Do Not Disturb comes on. An
+            <em>Always in Focus</em> list keeps chosen apps in color no matter
+            what — most people put their music player there.
+          </p>
+        </div>
+      </section>
+
+      <section class="feature" aria-labelledby="f-int">
+        <h2 id="f-int"><span class="num">04</span> Scriptable, because you'll want to</h2>
+        <div class="feature-body">
+          <p>
+            A global hotkey (⌃⌥⌘F), a CLI, and a URL scheme. Wire it into
+            Raycast, Alfred, Shortcuts, a tmux keybinding, whatever you already
+            use to start your day.
+          </p>
+          <pre><code><span class="c">// shell</span>
+sfctl enabled 1
+sfctl grayscale 0.8
+sfctl mode frontApp
+
+<span class="c">// Raycast, Alfred, Shortcuts</span>
+open "sharpfocus://preset/deep-work"</code></pre>
+        </div>
+      </section>
+
+      <section class="feature" aria-labelledby="f-oss">
+        <h2 id="f-oss"><span class="num">05</span> Open source, and small enough to read</h2>
+        <div class="feature-body">
+          <p>
+            A few thousand lines of Swift, no dependencies, no analytics, no
+            account, no update nag. If it does something you don't like, the
+            file that does it is easy to find.
+          </p>
+        </div>
+      </section>
+
+      <section class="how" id="how" aria-labelledby="how-h">
+        <h2 id="how-h">How it works</h2>
+        <p>
+          One borderless, click-through overlay window per display sits just
+          above your app windows. A mask cuts holes over whatever is in focus,
+          and the hole geometry is occlusion-aware — a window floating on top of
+          your editor still gets filtered, instead of punching a hole through
+          it. Window frames come from polling <code>CGWindowList</code> at
+          15&nbsp;Hz, so there's no Accessibility permission either.
+        </p>
+        <p class="how-caveat">
+          The fast path uses a private CoreAnimation API. It's been stable for
+          years, but it isn't guaranteed — availability is probed at launch and
+          the app falls back on its own if it ever goes away.
+        </p>
+      </section>
+
+      <!-- ── Download ─────────────────────────────────────────── -->
+      <section class="download" id="download" aria-labelledby="dl-h">
+        <div class="dl-main">
+          <h2 id="dl-h">Download</h2>
+          <p class="dl-version">
+            <span class="dl-num" data-version>0.1.0</span>
+            <span class="dl-req">macOS 14 Sonoma or later · Universal · 2.4 MB</span>
+          </p>
+          <a class="btn btn-primary btn-lg" href="#download" data-download-url>
+            Download Sharp Focus
+            <svg viewBox="0 0 16 16" aria-hidden="true" class="btn-icon">
+              <path d="M8 1.5v9m0 0L4.5 7M8 10.5 11.5 7M2 13.5h12" />
+            </svg>
+          </a>
+          <p class="dl-alt">
+            or build it yourself —
+            <code>git clone https://github.com/ac40/sharpfocus &amp;&amp; ./Scripts/bundle.sh</code>
+          </p>
+        </div>
+        <aside class="dl-notes">
+          <h3>Before you open it</h3>
+          <p>
+            The build isn't notarized yet, so macOS will refuse it the first
+            time. Right-click the app → <strong>Open</strong> →
+            <strong>Open</strong>. Once, and never again.
+          </p>
+          <h3>Release notes</h3>
+          <p class="placeholder">Nothing here yet — the first tagged release will land on GitHub.</p>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-foot">
+      <div class="foot-row">
+        <a class="wordmark small" href="#top">
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" class="mark-ring" />
+            <path d="M16 4.6a11.4 11.4 0 0 1 0 22.8Z" class="mark-fill" />
+          </svg>
+          <span>Sharp Focus</span>
+        </a>
+        <nav aria-label="Footer">
+          <a href="https://github.com/ac40/sharpfocus" rel="noopener">GitHub</a>
+          <a href="https://github.com/ac40/sharpfocus/issues" rel="noopener">Issues</a>
+          <a href="https://github.com/ac40/sharpfocus/blob/main/LICENSE" rel="noopener">MIT License</a>
+          <a href="https://acrichter.com" rel="noopener">Made by Aaron Richter</a>
+        </nav>
+      </div>
+      <p class="credits">
+        The desktop up top is hand-written HTML and CSS — no screenshots, no
+        images. Apple, macOS and the app names in the demo belong to their
+        owners; none of them are real here.
+      </p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

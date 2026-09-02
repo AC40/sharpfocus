@@ -79,13 +79,14 @@ final class FocusTracker {
             as? [[String: Any]] ?? []
     }
 
-    /// Normal-level, visible windows, front-to-back, excluding our own.
+    /// Normal-level, visible windows, front-to-back. Our overlay windows sit at
+    /// the floating level, so the layer filter drops them; our own settings
+    /// window (layer 0) is treated like any other window and gets a hole.
     private func normalWindows(in list: [[String: Any]]) -> [WindowInfo] {
-        let myPID = getpid()
-        return list.compactMap { entry in
+        list.compactMap { entry in
             guard
                 let layer = entry[kCGWindowLayer as String] as? Int, layer == 0,
-                let pid = entry[kCGWindowOwnerPID as String] as? pid_t, pid != myPID,
+                let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
                 let id = entry[kCGWindowNumber as String] as? CGWindowID,
                 let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
                 let bounds = CGRect(dictionaryRepresentation: boundsDict),
