@@ -1,34 +1,31 @@
 import AppKit
 import QuartzCore
 
-/// Borderless, click-through window that hosts the filter layers for one screen.
 final class OverlayWindow: NSWindow {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
 
-/// Manages one overlay window per screen. Each overlay stacks:
-///  - a backdrop layer (window-server-side grayscale + blur of what's behind)
-///  - a dim layer for optional darkening
-/// Both are masked by an even-odd shape with holes cut over the focused windows.
 final class OverlayController {
     private struct Overlay {
         let window: OverlayWindow
-        let backdropLayer: CALayer?  // nil when the private API is unavailable
+        let grayBackdropLayer: CALayer?
+        let blurBackdropLayer: CALayer?
         let dimLayer: CALayer
-        let maskLayer: CAShapeLayer
-        let screenFrame: CGRect  // Cocoa global coords
+        let grayMask: CAShapeLayer
+        let blurMask: CAShapeLayer
+        let dimMask: CAShapeLayer
+        let screenFrame: CGRect
     }
 
     private var overlays: [Overlay] = []
-    private var currentHoles: [Hole] = []
+    private var currentFocusHoles: [Hole] = []
+    private var currentGrayHoles: [Hole] = []
 
     private static let holeCornerRadius: CGFloat = 11
 
     var isActive: Bool { !overlays.isEmpty }
 
-    /// Temporarily hides the overlay (Mission Control) without tearing it
-    /// down. `show()` respects this, so nothing can accidentally un-hide it.
     var isSuppressed = false {
         didSet {
             guard isSuppressed != oldValue else { return }
@@ -59,41 +56,42 @@ final class OverlayController {
         overlays.forEach { $0.window.orderOut(nil) }
     }
 
-    /// Holes in global CG coordinates (top-left origin).
-    func setHoles(_ holes: [Hole]) {
-        currentHoles = holes
+    func setHoles(focus focusHoles: [Hole], gray grayHoles: [Hole]) {
+        currentFocusHoles = focusHoles
+        currentGrayHoles = grayHoles
         applyHoles()
     }
 
-    /// Re-reads grayscale/blur/dimming and updates the layers.
     func applyAppearance() {
         let settings = Settings.shared
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         for overlay in overlays {
-            if let backdrop = overlay.backdropLayer {
+            if let gray = overlay.grayBackdropLayer {
                 var filters: [Any] = []
                 if settings.grayscale > 0.001,
                    let saturate = Backdrop.makeFilter("colorSaturate") {
                     saturate.setValue(1.0 - settings.grayscale, forKey: "inputAmount")
                     filters.append(saturate)
                 }
+                gray.filters = filters
+                gray.isHidden = filters.isEmpty
+            }
+            if let blur = overlay.blurBackdropLayer {
+                var filters: [Any] = []
                 if settings.blurRadius > 0.5,
-                   let blur = Backdrop.makeFilter("gaussianBlur") {
-                    blur.setValue(settings.blurRadius, forKey: "inputRadius")
-                    blur.setValue(true, forKey: "inputHardEdges")
-                    filters.append(blur)
+                   let blurFilter = Backdrop.makeFilter("gaussianBlur") {
+                    blurFilter.setValue(settings.blurRadius, forKey: "inputRadius")
+                    blurFilter.setValue(true, forKey: "inputHardEdges")
+                    filters.append(blurFilter)
                 }
-                backdrop.filters = filters
-                // An unfiltered backdrop is a no-op; hiding it saves compositing.
-                backdrop.isHidden = filters.isEmpty
+                blur.filters = filters
+                blur.isHidden = filters.isEmpty
             }
             overlay.dimLayer.opacity = Float(settings.dimming)
         }
         CATransaction.commit()
     }
-
-    // MARK: - Setup
 
     private func makeOverlay(for screen: NSScreen) -> Overlay {
         let window = OverlayWindow(
@@ -115,69 +113,96 @@ final class OverlayController {
         let root = contentView.layer!
         let bounds = CGRect(origin: .zero, size: screen.frame.size)
 
-        var backdropLayer: CALayer?
-        if let backdrop = Backdrop.makeLayer() {
-            backdrop.frame = bounds
-            backdrop.contentsScale = screen.backingScaleFactor
-            root.addSublayer(backdrop)
-            backdropLayer = backdrop
+        var grayBackdropLayer: CALayer?
+        var blurBackdropLayer: CALayer?
+        let grayMask = Self.makeMask(frame: bounds)
+        let blurMask = Self.makeMask(frame: bounds)
+        let dimMask = Self.makeMask(frame: bounds)
+        if let gray = Backdrop.makeLayer() {
+            gray.frame = bounds
+            gray.contentsScale = screen.backingScaleFactor
+            gray.mask = grayMask
+            root.addSublayer(gray)
+            grayBackdropLayer = gray
+        }
+        if let blur = Backdrop.makeLayer() {
+            blur.frame = bounds
+            blur.contentsScale = screen.backingScaleFactor
+            blur.mask = blurMask
+            root.addSublayer(blur)
+            blurBackdropLayer = blur
         }
 
         let dimLayer = CALayer()
         dimLayer.frame = bounds
         dimLayer.backgroundColor = NSColor.black.cgColor
         dimLayer.opacity = 0
+        dimLayer.mask = dimMask
         root.addSublayer(dimLayer)
-
-        let maskLayer = CAShapeLayer()
-        maskLayer.frame = bounds
-        maskLayer.fillRule = .evenOdd
-        maskLayer.fillColor = NSColor.black.cgColor
-        root.mask = maskLayer
 
         return Overlay(
             window: window,
-            backdropLayer: backdropLayer,
+            grayBackdropLayer: grayBackdropLayer,
+            blurBackdropLayer: blurBackdropLayer,
             dimLayer: dimLayer,
-            maskLayer: maskLayer,
+            grayMask: grayMask,
+            blurMask: blurMask,
+            dimMask: dimMask,
             screenFrame: screen.frame
         )
     }
 
-    // MARK: - Mask geometry
+    private static func makeMask(frame: CGRect) -> CAShapeLayer {
+        let mask = CAShapeLayer()
+        mask.frame = frame
+        mask.fillRule = .evenOdd
+        mask.fillColor = NSColor.black.cgColor
+        return mask
+    }
 
     private func applyHoles() {
-        // CG global (top-left origin) -> Cocoa global (bottom-left origin).
         let primaryHeight = (NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.screens.first)?
             .frame.height ?? 0
-        let cocoaHoles = currentHoles.map { hole in
-            Hole(
-                rect: CGRect(x: hole.rect.origin.x, y: primaryHeight - hole.rect.maxY,
-                             width: hole.rect.width, height: hole.rect.height),
-                rounded: hole.rounded)
-        }
+        let cocoaFocusHoles = currentFocusHoles.map { Self.toCocoa($0, primaryHeight: primaryHeight) }
+        let cocoaGrayHoles = currentGrayHoles.map { Self.toCocoa($0, primaryHeight: primaryHeight) }
 
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         for overlay in overlays {
-            let path = CGMutablePath()
             let bounds = CGRect(origin: .zero, size: overlay.screenFrame.size)
-            path.addRect(bounds)
-            for hole in cocoaHoles {
-                let local = hole.rect.offsetBy(
-                    dx: -overlay.screenFrame.origin.x,
-                    dy: -overlay.screenFrame.origin.y
-                )
-                guard local.intersects(bounds) else { continue }
-                if hole.rounded {
-                    let radius = min(Self.holeCornerRadius, local.width / 2, local.height / 2)
-                    path.addRoundedRect(in: local, cornerWidth: radius, cornerHeight: radius)
-                } else {
-                    path.addRect(local)
-                }
-            }
-            overlay.maskLayer.path = path
+            overlay.blurMask.path = Self.maskPath(bounds: bounds, screenFrame: overlay.screenFrame,
+                                                  holes: cocoaFocusHoles)
+            overlay.dimMask.path = Self.maskPath(bounds: bounds, screenFrame: overlay.screenFrame,
+                                                 holes: cocoaFocusHoles)
+            overlay.grayMask.path = Self.maskPath(bounds: bounds, screenFrame: overlay.screenFrame,
+                                                  holes: cocoaGrayHoles)
         }
         CATransaction.commit()
+    }
+
+    private static func toCocoa(_ hole: Hole, primaryHeight: CGFloat) -> Hole {
+        Hole(
+            rect: CGRect(x: hole.rect.origin.x, y: primaryHeight - hole.rect.maxY,
+                         width: hole.rect.width, height: hole.rect.height),
+            rounded: hole.rounded)
+    }
+
+    private static func maskPath(bounds: CGRect, screenFrame: CGRect, holes: [Hole]) -> CGPath {
+        let path = CGMutablePath()
+        path.addRect(bounds)
+        for hole in holes {
+            let local = hole.rect.offsetBy(
+                dx: -screenFrame.origin.x,
+                dy: -screenFrame.origin.y
+            )
+            guard local.intersects(bounds) else { continue }
+            if hole.rounded {
+                let radius = min(Self.holeCornerRadius, local.width / 2, local.height / 2)
+                path.addRoundedRect(in: local, cornerWidth: radius, cornerHeight: radius)
+            } else {
+                path.addRect(local)
+            }
+        }
+        return path
     }
 }

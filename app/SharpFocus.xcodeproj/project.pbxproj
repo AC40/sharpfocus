@@ -7,39 +7,105 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01A01CBCDC323F69EB11DEE0 /* PermissionsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D5AD31D807C5A96A322595 /* PermissionsBanner.swift */; };
+		0728D5C3791DCE2A88287809 /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBF0BC3CC82DDC3470A2E62 /* Clock.swift */; };
 		0D16C5D44E904C3CAA716C43 /* OverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDAAA29560F4A1EA7DF9017 /* OverlayController.swift */; };
+		155E8EBAA2DE9C86FEC01806 /* PresetsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9A2FE46E1E8A6A678B41FD /* PresetsPane.swift */; };
+		17B6E6FF3543721A4A503D27 /* Settings+Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3438C601D8FDA4A7796615A /* Settings+Shortcuts.swift */; };
+		1DFEA19E67E05984ABB44704 /* ShortcutRecorderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC183BBF1311834ED29216E /* ShortcutRecorderRow.swift */; };
+		1E0E7F5CEED555601F269E75 /* SettingsHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98F4BA769AD34F4D0B861B9E /* SettingsHelpers.swift */; };
+		1E54926D1513C4929799802A /* CurrentlyPinnedEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7CE8DB725DAE2D79122C32E /* CurrentlyPinnedEditor.swift */; };
 		1E894FBBD1B6465F846E68DF /* FocusTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B99502B031FF431EACD5E631 /* FocusTracker.swift */; };
+		286F64ABCF869F0B742626EE /* AboutPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27BFEBABE4D4C27F9A68B1B /* AboutPane.swift */; };
+		29C1EEB78B4814D4BADD860C /* LabeledSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07D3593E03EC61E46A46AB1 /* LabeledSlider.swift */; };
 		2FE0E2F1107247F4B893F6D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D406B2D80AC46A7B46E5C19 /* AppDelegate.swift */; };
 		3BAB52721CC9423C90A949C1 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75EE7178A6740688B6C1F76 /* LoginItem.swift */; };
+		3EE050CAEEC4BCBE7BAB1BCA /* OnboardingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADFA3B7C77E384E17E277BE /* OnboardingWindow.swift */; };
 		465D47DFEEE94096B3087EFC /* Backdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B736AFAA54454CB74FE78A /* Backdrop.swift */; };
+		48B08F45876741CE7EC808E5 /* Settings+Automation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772FC953BEAD6034A66DBB01 /* Settings+Automation.swift */; };
+		49210942C0DD59AF60A6DAC2 /* AppDelegate+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BC868598275CBFADF7BCE3 /* AppDelegate+Menu.swift */; };
+		50C83BEC2A421181176CDF2C /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070F6381E7BCFF4548E6C1B6 /* SettingsWindowController.swift */; };
+		531057BF09C246DD85D93A1C /* CaptionedToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F329F35EC41F3CA01532249 /* CaptionedToggle.swift */; };
 		5E9F4807304ABAE700ABA00D /* HighlightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E9F4806304ABAE700ABA00D /* HighlightView.swift */; };
 		5EEC9FC5C9B748D8A9A2E25F /* build/AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9B8B9B6B1ACC454DBEC7F360 /* build/AppIcon.icns */; };
-		88C5AA5ED1AA4D01959B312E /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244A903D1BBD444B91FE6033 /* SettingsWindow.swift */; };
+		65732C58675E7D6C5567E7D8 /* KeyShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78CCFE828E60B3CA1B8E2ECD /* KeyShortcut.swift */; };
+		6888205D5E984C9A17D90A3D /* github.svg in Resources */ = {isa = PBXBuildFile; fileRef = 2E1859FD705382DACDD4590D /* github.svg */; };
+		71F334C855CC27169B2005CF /* AlwaysAppsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC527B687C586086BFD531DF /* AlwaysAppsEditor.swift */; };
+		73931DEFB0651B7294A2DA7D /* AppActivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222F9DE948C661B5149CAE24 /* AppActivation.swift */; };
+		757744DC72EDCCB405D8383B /* Weekdays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9082B74442C590EC094BA8C3 /* Weekdays.swift */; };
+		86910E102C904FE4A6F7891E /* AutomationRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B894A244BC7E5E84EC6CDB /* AutomationRule.swift */; };
+		8BBF711F8BC6F8CE6125635B /* AutomationPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405BD828C7F238EAB997BE50 /* AutomationPane.swift */; };
 		8EF40C91F1524B419EF8C29E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E128F210248E4977A8CBEA12 /* main.swift */; };
+		98D1B1D3155410C15C2457F5 /* SettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E2DD6AFADA32B7BC9FEFAE /* SettingsPane.swift */; };
 		9934AF22218040F7B6FCF4E9 /* FocusModeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE4435D4EDB44235B08BB0A3 /* FocusModeMonitor.swift */; };
-		B781D48E897E4455B796B2E0 /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D35AD397B6947058E57B420 /* HotKeys.swift */; };
+		AE0501E0600E6CDBD3F7FB36 /* FollowMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DB1753A69EC4FA6569BBB7 /* FollowMode.swift */; };
+		B0BBFCF1AA053399D18EC929 /* AppDelegate+Snooze.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBEC34A85E5A3F42AD48B96E /* AppDelegate+Snooze.swift */; };
+		B7C3EE99F0A95B25944FE6F4 /* Settings+Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2D1BC88C21692189BEDF16 /* Settings+Presets.swift */; };
 		B848CCB3D3EC48CEABC14586 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B72AF30B89482AB9BB27C0 /* Settings.swift */; };
 		BC656C2D59884DE9A6049070 /* Automation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6272B5CDBF643EE8A4D46C0 /* Automation.swift */; };
+		C232A4251DF702102E9615BF /* Preset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 660552F69E14ECFACCC9A90B /* Preset.swift */; };
 		C663AE4EEA2C408E828E46E8 /* Commands.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1D1B165A3C40719A8C072E /* Commands.swift */; };
+		CABF0FF17467D870B9AFAB61 /* HotKeyCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 476375D79B4E4C9841B956C1 /* HotKeyCenter.swift */; };
+		D3777E107BBF279DA35A01BA /* GeneralPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69498752ED00D2D9E62BD9C4 /* GeneralPane.swift */; };
+		D7AC38FCD7FC09616365723A /* AccessibilityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F5A78727E713162EBCF89F /* AccessibilityMonitor.swift */; };
+		D93E0EA8D741386E6CD72F4F /* AutomationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA65E1A177B21DD8C1A2ADA /* AutomationState.swift */; };
+		E0568692E5304DAA27910286 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633EF1FBB3555E5141CCE482 /* SettingsTab.swift */; };
+		F2902513D2F1D357956EF9F9 /* AppDelegate+Commands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B99B9AF0360613CC6FF4A78 /* AppDelegate+Commands.swift */; };
+		F462F75F0ECE3CC0EA6E71CA /* Settings+Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE56E86EE3F7EFFCBAB91790 /* Settings+Persistence.swift */; };
+		F6DC68980CC6B9818CCEDE40 /* EffectPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EED3C38E9949B9D11B04639 /* EffectPane.swift */; };
+		FDA1711F95CD201E1AD286F4 /* EffectSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894B42ED873C44DFE21A100A /* EffectSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		04B72AF30B89482AB9BB27C0 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
-		244A903D1BBD444B91FE6033 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		05BC868598275CBFADF7BCE3 /* AppDelegate+Menu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Menu.swift"; sourceTree = "<group>"; };
+		070F6381E7BCFF4548E6C1B6 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		08D5AD31D807C5A96A322595 /* PermissionsBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsBanner.swift; sourceTree = "<group>"; };
+		0EA65E1A177B21DD8C1A2ADA /* AutomationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationState.swift; sourceTree = "<group>"; };
+		1F329F35EC41F3CA01532249 /* CaptionedToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionedToggle.swift; sourceTree = "<group>"; };
+		222F9DE948C661B5149CAE24 /* AppActivation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppActivation.swift; sourceTree = "<group>"; };
 		26E6D60FDD654CC985B5620F /* SharpFocus-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SharpFocus-Info.plist"; sourceTree = "<group>"; };
+		2B99B9AF0360613CC6FF4A78 /* AppDelegate+Commands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Commands.swift"; sourceTree = "<group>"; };
+		2E1859FD705382DACDD4590D /* github.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = github.svg; sourceTree = "<group>"; };
 		302EC3DD3C554520948F7C9A /* SharpFocus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SharpFocus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F2D1BC88C21692189BEDF16 /* Settings+Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings+Presets.swift"; sourceTree = "<group>"; };
+		405BD828C7F238EAB997BE50 /* AutomationPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationPane.swift; sourceTree = "<group>"; };
+		476375D79B4E4C9841B956C1 /* HotKeyCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyCenter.swift; sourceTree = "<group>"; };
+		47DB1753A69EC4FA6569BBB7 /* FollowMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowMode.swift; sourceTree = "<group>"; };
 		5E9F4806304ABAE700ABA00D /* HighlightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightView.swift; sourceTree = "<group>"; };
+		5FBF0BC3CC82DDC3470A2E62 /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
+		633EF1FBB3555E5141CCE482 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		660552F69E14ECFACCC9A90B /* Preset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preset.swift; sourceTree = "<group>"; };
+		69498752ED00D2D9E62BD9C4 /* GeneralPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralPane.swift; sourceTree = "<group>"; };
+		772FC953BEAD6034A66DBB01 /* Settings+Automation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings+Automation.swift"; sourceTree = "<group>"; };
+		78CCFE828E60B3CA1B8E2ECD /* KeyShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyShortcut.swift; sourceTree = "<group>"; };
 		79B736AFAA54454CB74FE78A /* Backdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backdrop.swift; sourceTree = "<group>"; };
-		8D35AD397B6947058E57B420 /* HotKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeys.swift; sourceTree = "<group>"; };
+		894B42ED873C44DFE21A100A /* EffectSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectSnapshot.swift; sourceTree = "<group>"; };
+		9082B74442C590EC094BA8C3 /* Weekdays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weekdays.swift; sourceTree = "<group>"; };
+		98F4BA769AD34F4D0B861B9E /* SettingsHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHelpers.swift; sourceTree = "<group>"; };
 		9B8B9B6B1ACC454DBEC7F360 /* build/AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = build/AppIcon.icns; sourceTree = "<group>"; };
 		9D406B2D80AC46A7B46E5C19 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9EDAAA29560F4A1EA7DF9017 /* OverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayController.swift; sourceTree = "<group>"; };
+		9EED3C38E9949B9D11B04639 /* EffectPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectPane.swift; sourceTree = "<group>"; };
+		A0B894A244BC7E5E84EC6CDB /* AutomationRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationRule.swift; sourceTree = "<group>"; };
+		AEC183BBF1311834ED29216E /* ShortcutRecorderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorderRow.swift; sourceTree = "<group>"; };
+		B07D3593E03EC61E46A46AB1 /* LabeledSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabeledSlider.swift; sourceTree = "<group>"; };
 		B6272B5CDBF643EE8A4D46C0 /* Automation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Automation.swift; sourceTree = "<group>"; };
+		B7CE8DB725DAE2D79122C32E /* CurrentlyPinnedEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentlyPinnedEditor.swift; sourceTree = "<group>"; };
 		B99502B031FF431EACD5E631 /* FocusTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusTracker.swift; sourceTree = "<group>"; };
+		C27BFEBABE4D4C27F9A68B1B /* AboutPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutPane.swift; sourceTree = "<group>"; };
 		CE1D1B165A3C40719A8C072E /* Commands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Commands.swift; sourceTree = "<group>"; };
+		D3438C601D8FDA4A7796615A /* Settings+Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings+Shortcuts.swift"; sourceTree = "<group>"; };
 		D75EE7178A6740688B6C1F76 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		E128F210248E4977A8CBEA12 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		E2F5A78727E713162EBCF89F /* AccessibilityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMonitor.swift; sourceTree = "<group>"; };
+		EA9A2FE46E1E8A6A678B41FD /* PresetsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetsPane.swift; sourceTree = "<group>"; };
+		EC527B687C586086BFD531DF /* AlwaysAppsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlwaysAppsEditor.swift; sourceTree = "<group>"; };
 		EE4435D4EDB44235B08BB0A3 /* FocusModeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusModeMonitor.swift; sourceTree = "<group>"; };
+		EE56E86EE3F7EFFCBAB91790 /* Settings+Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings+Persistence.swift"; sourceTree = "<group>"; };
+		F3E2DD6AFADA32B7BC9FEFAE /* SettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPane.swift; sourceTree = "<group>"; };
+		FADFA3B7C77E384E17E277BE /* OnboardingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindow.swift; sourceTree = "<group>"; };
+		FBEC34A85E5A3F42AD48B96E /* AppDelegate+Snooze.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Snooze.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +119,72 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		018D89A51A153865F9E32D0B /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				772FC953BEAD6034A66DBB01 /* Settings+Automation.swift */,
+				EE56E86EE3F7EFFCBAB91790 /* Settings+Persistence.swift */,
+				3F2D1BC88C21692189BEDF16 /* Settings+Presets.swift */,
+				D3438C601D8FDA4A7796615A /* Settings+Shortcuts.swift */,
+			);
+			path = Store;
+			sourceTree = "<group>";
+		};
+		25B7FD9B5B1D02C6709AE39E /* HotKeys */ = {
+			isa = PBXGroup;
+			children = (
+				476375D79B4E4C9841B956C1 /* HotKeyCenter.swift */,
+				78CCFE828E60B3CA1B8E2ECD /* KeyShortcut.swift */,
+			);
+			path = HotKeys;
+			sourceTree = "<group>";
+		};
+		3404334F3DB6E150501D1C27 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				CF493F83EFC80A66287D6894 /* Components */,
+				AB071A87CE775289A503C945 /* Helpers */,
+				E95EC0E46D1BBA0500B342A4 /* Panes */,
+				018D89A51A153865F9E32D0B /* Store */,
+				98F4BA769AD34F4D0B861B9E /* SettingsHelpers.swift */,
+				F3E2DD6AFADA32B7BC9FEFAE /* SettingsPane.swift */,
+				633EF1FBB3555E5141CCE482 /* SettingsTab.swift */,
+				070F6381E7BCFF4548E6C1B6 /* SettingsWindowController.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		4336243F6156D66A60F74FFC /* AppDelegate */ = {
+			isa = PBXGroup;
+			children = (
+				2B99B9AF0360613CC6FF4A78 /* AppDelegate+Commands.swift */,
+				05BC868598275CBFADF7BCE3 /* AppDelegate+Menu.swift */,
+				FBEC34A85E5A3F42AD48B96E /* AppDelegate+Snooze.swift */,
+			);
+			path = AppDelegate;
+			sourceTree = "<group>";
+		};
+		5C0E770FE5F3E49F173E3143 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A0B894A244BC7E5E84EC6CDB /* AutomationRule.swift */,
+				0EA65E1A177B21DD8C1A2ADA /* AutomationState.swift */,
+				894B42ED873C44DFE21A100A /* EffectSnapshot.swift */,
+				47DB1753A69EC4FA6569BBB7 /* FollowMode.swift */,
+				660552F69E14ECFACCC9A90B /* Preset.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AB071A87CE775289A503C945 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				5FBF0BC3CC82DDC3470A2E62 /* Clock.swift */,
+				9082B74442C590EC094BA8C3 /* Weekdays.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
 		C149FFC98499492CB9585306 = {
 			isa = PBXGroup;
 			children = (
@@ -61,6 +193,17 @@
 				26E6D60FDD654CC985B5620F /* SharpFocus-Info.plist */,
 				9B8B9B6B1ACC454DBEC7F360 /* build/AppIcon.icns */,
 			);
+			sourceTree = "<group>";
+		};
+		CF493F83EFC80A66287D6894 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				1F329F35EC41F3CA01532249 /* CaptionedToggle.swift */,
+				B07D3593E03EC61E46A46AB1 /* LabeledSlider.swift */,
+				08D5AD31D807C5A96A322595 /* PermissionsBanner.swift */,
+				AEC183BBF1311834ED29216E /* ShortcutRecorderRow.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 		D377D9A10A5C4763955A7AF9 /* Products */ = {
@@ -74,21 +217,49 @@
 		DD8359E3B787457CBF0D1068 /* Sources/SharpFocus */ = {
 			isa = PBXGroup;
 			children = (
+				4336243F6156D66A60F74FFC /* AppDelegate */,
+				25B7FD9B5B1D02C6709AE39E /* HotKeys */,
+				5C0E770FE5F3E49F173E3143 /* Models */,
+				3404334F3DB6E150501D1C27 /* Settings */,
+				E2F5A78727E713162EBCF89F /* AccessibilityMonitor.swift */,
+				222F9DE948C661B5149CAE24 /* AppActivation.swift */,
 				9D406B2D80AC46A7B46E5C19 /* AppDelegate.swift */,
 				B6272B5CDBF643EE8A4D46C0 /* Automation.swift */,
 				79B736AFAA54454CB74FE78A /* Backdrop.swift */,
 				CE1D1B165A3C40719A8C072E /* Commands.swift */,
 				EE4435D4EDB44235B08BB0A3 /* FocusModeMonitor.swift */,
 				B99502B031FF431EACD5E631 /* FocusTracker.swift */,
-				8D35AD397B6947058E57B420 /* HotKeys.swift */,
+				5E9F4806304ABAE700ABA00D /* HighlightView.swift */,
 				D75EE7178A6740688B6C1F76 /* LoginItem.swift */,
-				E128F210248E4977A8CBEA12 /* main.swift */,
+				FADFA3B7C77E384E17E277BE /* OnboardingWindow.swift */,
 				9EDAAA29560F4A1EA7DF9017 /* OverlayController.swift */,
 				04B72AF30B89482AB9BB27C0 /* Settings.swift */,
-				244A903D1BBD444B91FE6033 /* SettingsWindow.swift */,
-				5E9F4806304ABAE700ABA00D /* HighlightView.swift */,
+				E128F210248E4977A8CBEA12 /* main.swift */,
+				F19026B4C177DBF630D919A1 /* Resources */,
 			);
 			path = Sources/SharpFocus;
+			sourceTree = "<group>";
+		};
+		E95EC0E46D1BBA0500B342A4 /* Panes */ = {
+			isa = PBXGroup;
+			children = (
+				C27BFEBABE4D4C27F9A68B1B /* AboutPane.swift */,
+				EC527B687C586086BFD531DF /* AlwaysAppsEditor.swift */,
+				405BD828C7F238EAB997BE50 /* AutomationPane.swift */,
+				B7CE8DB725DAE2D79122C32E /* CurrentlyPinnedEditor.swift */,
+				9EED3C38E9949B9D11B04639 /* EffectPane.swift */,
+				69498752ED00D2D9E62BD9C4 /* GeneralPane.swift */,
+				EA9A2FE46E1E8A6A678B41FD /* PresetsPane.swift */,
+			);
+			path = Panes;
+			sourceTree = "<group>";
+		};
+		F19026B4C177DBF630D919A1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2E1859FD705382DACDD4590D /* github.svg */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -150,6 +321,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5EEC9FC5C9B748D8A9A2E25F /* build/AppIcon.icns in Resources */,
+				6888205D5E984C9A17D90A3D /* github.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,19 +332,51 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D7AC38FCD7FC09616365723A /* AccessibilityMonitor.swift in Sources */,
+				73931DEFB0651B7294A2DA7D /* AppActivation.swift in Sources */,
 				2FE0E2F1107247F4B893F6D9 /* AppDelegate.swift in Sources */,
+				F2902513D2F1D357956EF9F9 /* AppDelegate+Commands.swift in Sources */,
+				49210942C0DD59AF60A6DAC2 /* AppDelegate+Menu.swift in Sources */,
+				B0BBFCF1AA053399D18EC929 /* AppDelegate+Snooze.swift in Sources */,
 				BC656C2D59884DE9A6049070 /* Automation.swift in Sources */,
 				465D47DFEEE94096B3087EFC /* Backdrop.swift in Sources */,
 				C663AE4EEA2C408E828E46E8 /* Commands.swift in Sources */,
 				9934AF22218040F7B6FCF4E9 /* FocusModeMonitor.swift in Sources */,
-				5E9F4807304ABAE700ABA00D /* HighlightView.swift in Sources */,
 				1E894FBBD1B6465F846E68DF /* FocusTracker.swift in Sources */,
-				B781D48E897E4455B796B2E0 /* HotKeys.swift in Sources */,
+				5E9F4807304ABAE700ABA00D /* HighlightView.swift in Sources */,
+				CABF0FF17467D870B9AFAB61 /* HotKeyCenter.swift in Sources */,
+				65732C58675E7D6C5567E7D8 /* KeyShortcut.swift in Sources */,
 				3BAB52721CC9423C90A949C1 /* LoginItem.swift in Sources */,
-				8EF40C91F1524B419EF8C29E /* main.swift in Sources */,
+				86910E102C904FE4A6F7891E /* AutomationRule.swift in Sources */,
+				D93E0EA8D741386E6CD72F4F /* AutomationState.swift in Sources */,
+				FDA1711F95CD201E1AD286F4 /* EffectSnapshot.swift in Sources */,
+				AE0501E0600E6CDBD3F7FB36 /* FollowMode.swift in Sources */,
+				C232A4251DF702102E9615BF /* Preset.swift in Sources */,
+				3EE050CAEEC4BCBE7BAB1BCA /* OnboardingWindow.swift in Sources */,
 				0D16C5D44E904C3CAA716C43 /* OverlayController.swift in Sources */,
 				B848CCB3D3EC48CEABC14586 /* Settings.swift in Sources */,
-				88C5AA5ED1AA4D01959B312E /* SettingsWindow.swift in Sources */,
+				531057BF09C246DD85D93A1C /* CaptionedToggle.swift in Sources */,
+				29C1EEB78B4814D4BADD860C /* LabeledSlider.swift in Sources */,
+				01A01CBCDC323F69EB11DEE0 /* PermissionsBanner.swift in Sources */,
+				1DFEA19E67E05984ABB44704 /* ShortcutRecorderRow.swift in Sources */,
+				0728D5C3791DCE2A88287809 /* Clock.swift in Sources */,
+				757744DC72EDCCB405D8383B /* Weekdays.swift in Sources */,
+				286F64ABCF869F0B742626EE /* AboutPane.swift in Sources */,
+				71F334C855CC27169B2005CF /* AlwaysAppsEditor.swift in Sources */,
+				8BBF711F8BC6F8CE6125635B /* AutomationPane.swift in Sources */,
+				1E54926D1513C4929799802A /* CurrentlyPinnedEditor.swift in Sources */,
+				F6DC68980CC6B9818CCEDE40 /* EffectPane.swift in Sources */,
+				D3777E107BBF279DA35A01BA /* GeneralPane.swift in Sources */,
+				155E8EBAA2DE9C86FEC01806 /* PresetsPane.swift in Sources */,
+				1E0E7F5CEED555601F269E75 /* SettingsHelpers.swift in Sources */,
+				98D1B1D3155410C15C2457F5 /* SettingsPane.swift in Sources */,
+				E0568692E5304DAA27910286 /* SettingsTab.swift in Sources */,
+				50C83BEC2A421181176CDF2C /* SettingsWindowController.swift in Sources */,
+				48B08F45876741CE7EC808E5 /* Settings+Automation.swift in Sources */,
+				F462F75F0ECE3CC0EA6E71CA /* Settings+Persistence.swift in Sources */,
+				B7C3EE99F0A95B25944FE6F4 /* Settings+Presets.swift in Sources */,
+				17B6E6FF3543721A4A503D27 /* Settings+Shortcuts.swift in Sources */,
+				8EF40C91F1524B419EF8C29E /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

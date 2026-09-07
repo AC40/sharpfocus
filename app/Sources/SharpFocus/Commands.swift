@@ -1,13 +1,5 @@
 import Foundation
 
-/// One vocabulary for every remote-control surface: the `sfctl` CLI
-/// (distributed notifications) and the `sharpfocus://` URL scheme.
-///
-///   sfctl enabled 1            sharpfocus://enable | disable | toggle
-///   sfctl grayscale 0.8        sharpfocus://set?grayscale=0.8&blur=10&dim=0.2&mode=frontApp
-///   sfctl preset "Deep Work"   sharpfocus://preset?name=Deep%20Work  (or /preset/deep-work)
-///   sfctl snooze 30            sharpfocus://snooze?minutes=30
-///   sfctl settings effect      sharpfocus://settings?tab=effect
 enum Command: Equatable {
     case setEnabled(Bool)
     case toggle
@@ -15,15 +7,14 @@ enum Command: Equatable {
     case blur(Double)
     case dim(Double)
     case mode(FollowMode)
+    case focusedStaysGrayscale(Bool)
     case preset(name: String)
     case snooze(minutes: Int)
     case pauseInMissionControl(Bool)
     case openSettings(tab: String?)
 
-    /// Keys the `set` URL accepts — value-only, never side-effecting verbs.
-    private static let effectKeys: Set<String> = ["grayscale", "blur", "dim", "mode"]
+    private static let effectKeys: Set<String> = ["grayscale", "blur", "dim", "mode", "focusedGray"]
 
-    /// The single parser; every surface tokenizes into (key, value) and lands here.
     static func parse(key: String, value: String) -> Command? {
         switch key {
         case "enabled": return .setEnabled(bool(value))
@@ -32,6 +23,7 @@ enum Command: Equatable {
         case "blur": return Double(value).map(Command.blur)
         case "dim": return Double(value).map(Command.dim)
         case "mode": return FollowMode(rawValue: value).map(Command.mode)
+        case "focusedGray", "focused-gray": return .focusedStaysGrayscale(bool(value))
         case "preset": return value.isEmpty ? nil : .preset(name: value)
         case "snooze": return Int(value).map { .snooze(minutes: $0) }
         case "mc-pause": return .pauseInMissionControl(bool(value))
@@ -40,7 +32,6 @@ enum Command: Equatable {
         }
     }
 
-    /// `key=value` (or bare `key`) as sent by sfctl.
     static func parse(line: String) -> Command? {
         let parts = line.split(separator: "=", maxSplits: 1).map(String.init)
         guard let key = parts.first else { return nil }
@@ -54,7 +45,6 @@ enum Command: Equatable {
         func value(_ name: String) -> String {
             query.first { $0.name == name }?.value ?? ""
         }
-        // `sharpfocus://preset/deep-work` — the path doubles as the value.
         let pathValue = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 
         switch host {
@@ -84,7 +74,6 @@ enum Command: Equatable {
 }
 
 extension String {
-    /// "Deep Work" == "deep-work" == "deepwork" for preset lookups.
     var presetLookupKey: String {
         lowercased().filter { $0.isLetter || $0.isNumber }
     }

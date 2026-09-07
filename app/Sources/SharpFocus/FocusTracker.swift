@@ -1,31 +1,27 @@
 import AppKit
 
-/// A screen region that stays in full color. `rounded` is set for whole,
-/// unoccluded windows so the cutout can follow the window's corner radius.
 struct Hole: Equatable {
     let rect: CGRect
     let rounded: Bool
 }
 
-/// Watches the window list and reports which screen regions ("holes") should
-/// stay in full color. Rects are in global CoreGraphics coordinates
-/// (origin at the top-left of the primary display, y grows downward).
-///
-/// Uses CGWindowList polling — window bounds and owner PIDs are available
-/// without any special permissions.
-final class FocusTracker {
-    var onUpdate: (([Hole]) -> Void)?
-    /// Fired when Mission Control / App Exposé / Launchpad becomes active or
-    /// inactive (detected via Dock-owned windows at elevated layers).
-    var onMissionControlChange: ((Bool) -> Void)?
-    private(set) var missionControlActive = false  // read by AppDelegate for suppression
+final class FocusTracker: ObservableObject {
+    static let shared = FocusTracker()
 
-    /// Individually pinned windows (session-only; window IDs don't survive relaunches).
-    private(set) var pinnedWindowIDs: Set<CGWindowID> = []
+    private init() {}
+
+    @Published private(set) var pinnedWindowIDs: Set<CGWindowID> = []
+
+    var onUpdate: (([Hole], [Hole]) -> Void)?
+    var onMissionControlChange: ((Bool) -> Void)?
+    private(set) var missionControlActive = false
 
     private var timer: Timer?
-    private var lastHoles: [Hole] = []
+    private var lastFocusHoles: [Hole] = []
+    private var lastGrayHoles: [Hole] = []
     private var activationObserver: NSObjectProtocol?
+    private var screenObserver: NSObjectProtocol?
+    private lazy var screenSizes: [CGSize] = NSScreen.screens.map { $0.frame.size }
 
     func start() {
         guard timer == nil else { return }
@@ -48,7 +44,8 @@ final class FocusTracker {
     func stop() {
         timer?.invalidate()
         timer = nil
-        lastHoles = []
+        lastFocusHoles = []
+        lastGrayHoles = []
         if let observer = activationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
             activationObserver = nil
@@ -59,7 +56,6 @@ final class FocusTracker {
         }
     }
 
-    /// Toggles the pin on the currently focused window. Returns true if it is now pinned.
     @discardableResult
     func togglePinFocusedWindow() -> Bool {
         guard let front = frontmostWindow() else { return false }
@@ -72,27 +68,35 @@ final class FocusTracker {
         return pinnedWindowIDs.contains(front)
     }
 
+    func togglePin(_ id: CGWindowID) {
+        if pinnedWindowIDs.contains(id) {
+            pinnedWindowIDs.remove(id)
+        } else {
+            pinnedWindowIDs.insert(id)
+        }
+        poll(force: true)
+    }
+
     func clearPinnedWindows() {
         pinnedWindowIDs = []
         poll(force: true)
     }
 
-    private struct WindowInfo {
+    struct WindowInfo: Hashable {
         let id: CGWindowID
         let pid: pid_t
         let bounds: CGRect
+        let title: String
+        var ownerPid: pid_t { pid }
     }
 
     private func rawWindowList() -> [[String: Any]] {
-        CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID)
-            as? [[String: Any]] ?? []
+        CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
     }
 
-    /// Normal-level, visible windows, front-to-back. Our overlay windows sit at
-    /// the floating level, so the layer filter drops them; our own settings
-    /// window (layer 0) is treated like any other window and gets a hole.
     private func normalWindows(in list: [[String: Any]]) -> [WindowInfo] {
-        list.compactMap { entry in
+        var appCounts: [String: Int] = [:]
+        return list.compactMap { entry in
             guard
                 let layer = entry[kCGWindowLayer as String] as? Int, layer == 0,
                 let pid = entry[kCGWindowOwnerPID as String] as? pid_t,
@@ -102,34 +106,36 @@ final class FocusTracker {
                 bounds.width > 30, bounds.height > 30,
                 (entry[kCGWindowAlpha as String] as? Double ?? 1) > 0.01
             else { return nil }
-            return WindowInfo(id: id, pid: pid, bounds: bounds)
+
+            var title = ""
+            let ownerName = entry[kCGWindowOwnerName as String] as? String
+            if let ownerName {
+                appCounts[ownerName, default: 0] += 1
+                title += ownerName
+                if let name = entry[kCGWindowName as String] as? String {
+                    title += " - " + name
+                } else {
+                    title += " (\(appCounts[ownerName]!))"
+                }
+            }
+            if title.isEmpty { title = "Unknown Window" }
+            return WindowInfo(id: id, pid: pid, bounds: bounds, title: title)
         }
     }
 
-    /// Mission Control / App Exposé put up *screen-sized* Dock-owned windows
-    /// at layers 18-20. The regular Dock bar is a thin strip at layer 20 and
-    /// wallpaper windows sit at the desktop level (large negative layer), so
-    /// "Dock window, elevated layer, covers most of a screen" is distinctive.
-    private lazy var screenSizes: [CGSize] = NSScreen.screens.map { $0.frame.size }
-    private var screenObserver: NSObjectProtocol?
+    func allWindows() -> [WindowInfo] {
+        normalWindows(in: rawWindowList())
+    }
 
     private func detectMissionControl(in list: [[String: Any]]) -> Bool {
-        list.contains { entry in
-            guard
-                let owner = entry[kCGWindowOwnerName as String] as? String, owner == "Dock",
-                let layer = entry[kCGWindowLayer as String] as? Int,
-                (1...100).contains(layer),
-                let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
-                let bounds = CGRect(dictionaryRepresentation: boundsDict)
-            else { return false }
-            return screenSizes.contains { size in
-                bounds.width * bounds.height >= 0.7 * size.width * size.height
-            }
+        if let axResult = AccessibilityMonitor.shared.isMissionControlActiveViaAX() {
+            return axResult
         }
+        let strict = AccessibilityMonitor.isMissionControlByStrictCG(list, screenSizes: screenSizes)
+        if strict { NSLog("SharpFocus: Mission Control detected via strict CG fallback (no AX)") }
+        return strict
     }
 
-    /// Frontmost window of the frontmost app, ignoring our own windows so the
-    /// pin hotkey never pins the settings window.
     private func frontmostWindow() -> CGWindowID? {
         guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier,
               frontPID != getpid()
@@ -140,8 +146,8 @@ final class FocusTracker {
     func poll(force: Bool = false) {
         let settings = Settings.shared
         let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        // Read settings once per tick, not once per window.
         let followMode = settings.followMode
+        let focusedStaysGrayscale = settings.focusedStaysGrayscale
         let alwaysApps = settings.alwaysApps
         let ownPID = getpid()
 
@@ -155,33 +161,43 @@ final class FocusTracker {
 
         let alwaysPIDs: Set<pid_t> = alwaysApps.isEmpty ? [] : Set(
             NSWorkspace.shared.runningApplications
-                .filter { app in app.bundleIdentifier.map(alwaysApps.contains) ?? false }
+                .filter { $0.bundleIdentifier.map(alwaysApps.contains) ?? false }
                 .map(\.processIdentifier)
         )
 
-        // Walk front-to-back. A focused window only stays in color where it is
-        // not covered by a non-focused window in front of it; the resulting
-        // colored region is kept as disjoint rects so the even-odd mask stays
-        // correct even with overlapping windows.
+        let windows = normalWindows(in: rawList)
+        let focusHoles = Self.holes(in: windows, frontPID: frontPID, ownPID: ownPID,
+                                    alwaysPIDs: alwaysPIDs, pinnedWindowIDs: pinnedWindowIDs,
+                                    followMode: followMode, includeFocused: true)
+        let grayHoles = focusedStaysGrayscale
+            ? Self.holes(in: windows, frontPID: frontPID, ownPID: ownPID,
+                         alwaysPIDs: alwaysPIDs, pinnedWindowIDs: pinnedWindowIDs,
+                         followMode: followMode, includeFocused: false)
+            : focusHoles
+
+        if force || focusHoles != lastFocusHoles || grayHoles != lastGrayHoles {
+            lastFocusHoles = focusHoles
+            lastGrayHoles = grayHoles
+            onUpdate?(focusHoles, grayHoles)
+        }
+    }
+
+    private static func holes(in windows: [WindowInfo], frontPID: pid_t?, ownPID: pid_t,
+                              alwaysPIDs: Set<pid_t>, pinnedWindowIDs: Set<CGWindowID>,
+                              followMode: FollowMode, includeFocused: Bool) -> [Hole] {
         var holes: [Hole] = []
-        // Everything already seen in front of the current window, whether it
-        // was an occluder or an earlier colored piece — both block the hole.
         var blockers: [CGRect] = []
         var focusedWindowTaken = false
-        for window in normalWindows(in: rawList) {
+        for window in windows {
             var include = false
             if window.pid == ownPID || pinnedWindowIDs.contains(window.id) || alwaysPIDs.contains(window.pid) {
-                include = true  // our own settings window is never filtered
-            } else if window.pid == frontPID {
+                include = true
+            } else if includeFocused, window.pid == frontPID {
                 switch followMode {
-                case .frontApp:
-                    include = true
-                case .focusedWindow:
-                    include = !focusedWindowTaken
+                case .frontApp: include = true
+                case .focusedWindow: include = !focusedWindowTaken
                 }
             }
-            // Whatever the reason it's included, the front app's first window
-            // counts as "the focused one".
             if include, window.pid == frontPID { focusedWindowTaken = true }
 
             if include {
@@ -196,14 +212,9 @@ final class FocusTracker {
                 blockers.append(window.bounds)
             }
         }
-
-        if force || holes != lastHoles {
-            lastHoles = holes
-            onUpdate?(holes)
-        }
+        return holes
     }
 
-    /// Removes `cut` from each rect, splitting into up to four remainder rects.
     static func subtract(_ cut: CGRect, from rects: [CGRect]) -> [CGRect] {
         var result: [CGRect] = []
         for rect in rects {
@@ -212,7 +223,6 @@ final class FocusTracker {
                 result.append(rect)
                 continue
             }
-            // Top strip (smaller y in CG coords), bottom strip, left and right slivers.
             if overlap.minY > rect.minY {
                 result.append(CGRect(x: rect.minX, y: rect.minY,
                                      width: rect.width, height: overlap.minY - rect.minY))

@@ -1,8 +1,6 @@
+import AppKit
 import Carbon.HIToolbox
-import Foundation
 
-/// Global hotkeys via Carbon's RegisterEventHotKey — works without
-/// Accessibility permission, unlike event taps or NSEvent global monitors.
 final class HotKeyCenter {
     static let shared = HotKeyCenter()
 
@@ -13,7 +11,6 @@ final class HotKeyCenter {
 
     private init() {}
 
-    /// `modifiers` uses Carbon flags, e.g. `UInt32(cmdKey | optionKey | controlKey)`.
     func register(keyCode: UInt32, modifiers: UInt32, handler: @escaping () -> Void) {
         installEventHandlerIfNeeded()
 
@@ -22,10 +19,28 @@ final class HotKeyCenter {
         handlers[id] = handler
 
         var hotKeyRef: EventHotKeyRef?
-        let hotKeyID = EventHotKeyID(signature: OSType(0x5346_4F43) /* 'SFOC' */, id: id)
-        RegisterEventHotKey(
+        let hotKeyID = EventHotKeyID(signature: OSType(0x5346_4F43), id: id)
+        let status = RegisterEventHotKey(
             keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
+        if status != noErr {
+            NSLog("SharpFocus: RegisterEventHotKey failed (keyCode=\(keyCode) modifiers=\(modifiers), OSStatus=\(status))")
+            handlers.removeValue(forKey: id)
+            return
+        }
         hotKeyRefs.append(hotKeyRef)
+    }
+
+    func register(_ shortcut: KeyShortcut, handler: @escaping () -> Void) {
+        register(keyCode: shortcut.keyCode, modifiers: shortcut.modifiers, handler: handler)
+    }
+
+    func unregisterAll() {
+        for ref in hotKeyRefs {
+            if let ref { UnregisterEventHotKey(ref) }
+        }
+        hotKeyRefs.removeAll()
+        handlers.removeAll()
+        nextID = 1
     }
 
     private func installEventHandlerIfNeeded() {

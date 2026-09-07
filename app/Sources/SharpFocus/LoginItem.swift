@@ -1,8 +1,6 @@
 import Foundation
 import ServiceManagement
 
-/// Launch-at-login via SMAppService. Only meaningful when running from a real
-/// .app bundle (the bare `swift build` binary has no bundle to register).
 enum LoginItem {
     static var isSupported: Bool {
         Bundle.main.bundleURL.pathExtension == "app"
@@ -13,7 +11,6 @@ enum LoginItem {
         return SMAppService.mainApp.status == .enabled
     }
 
-    /// True when the user has to approve the item in System Settings.
     static var requiresApproval: Bool {
         guard isSupported else { return false }
         return SMAppService.mainApp.status == .requiresApproval

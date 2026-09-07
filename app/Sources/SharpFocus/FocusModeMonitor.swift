@@ -1,13 +1,7 @@
 import AppKit
 
-/// Reads the active macOS Focus mode from the DoNotDisturb database
-/// (~/Library/DoNotDisturb/DB). There is no public API that names the active
-/// Focus; these files are what every current tool uses. Reading them requires
-/// Full Disk Access on macOS 14+, so this is strictly opt-in: without access
-/// the monitor reports nil and the UI offers to open the right settings pane.
 final class FocusModeMonitor {
     static let shared = FocusModeMonitor()
-    static let isSupported = true
 
     private static let dbDirectory = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/DoNotDisturb/DB", isDirectory: true)
@@ -22,8 +16,6 @@ final class FocusModeMonitor {
     private var pendingRefresh: DispatchWorkItem?
     private let queue = DispatchQueue(label: "sharpfocus.focusmode")
 
-    /// True when the database is readable (i.e. Full Disk Access is granted).
-    /// `access(2)` is TCC-gated too, so this needs no actual read.
     static var hasAccess: Bool {
         FileManager.default.isReadableFile(atPath: assertionsURL.path)
     }
@@ -33,8 +25,6 @@ final class FocusModeMonitor {
         NSWorkspace.shared.open(url)
     }
 
-    /// Names of all configured Focus modes, for the rule editor. Refreshed
-    /// together with the active mode.
     private(set) var knownModes: [String] = []
 
     private static func loadKnownModes() -> [String] {
@@ -48,8 +38,6 @@ final class FocusModeMonitor {
         guard directorySource == nil else { return }
         refresh()
 
-        // donotdisturbd rewrites the files atomically (write + rename), so we
-        // watch the directory rather than a file inode.
         let fd = open(Self.dbDirectory.path, O_EVTONLY)
         if fd >= 0 {
             let source = DispatchSource.makeFileSystemObjectSource(
@@ -60,8 +48,6 @@ final class FocusModeMonitor {
             directorySource = source
         }
 
-        // Safety net for activations that don't go through the assertion
-        // store (schedules, other devices), and for when the watch failed.
         let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in self?.refresh() }
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
@@ -82,7 +68,6 @@ final class FocusModeMonitor {
     }
 
     private func refresh() {
-        // File I/O off the main thread; publish on main.
         queue.async { [weak self] in
             let mode = Self.readActiveModeName()
             let modes = Self.loadKnownModes()
@@ -97,14 +82,11 @@ final class FocusModeMonitor {
         }
     }
 
-    // MARK: - Parsing
-
     private static func json(at url: URL) -> [String: Any]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
-    /// `data[0].modeConfigurations[<identifier>]`
     private static func modeConfigurations() -> [String: [String: Any]]? {
         guard let root = json(at: modesURL),
               let store = (root["data"] as? [[String: Any]])?.first
@@ -112,7 +94,6 @@ final class FocusModeMonitor {
         return store["modeConfigurations"] as? [String: [String: Any]]
     }
 
-    /// `data[0].storeAssertionRecords[].assertionDetails.assertionDetailsModeIdentifier`
     private static func readActiveModeName() -> String? {
         guard let root = json(at: assertionsURL),
               let store = (root["data"] as? [[String: Any]])?.first,
@@ -132,7 +113,6 @@ final class FocusModeMonitor {
            let name = mode["name"] as? String {
             return name
         }
-        // Fallback: derive something readable from the identifier.
         return identifier.split(separator: ".").last.map { String($0).capitalized }
     }
 }

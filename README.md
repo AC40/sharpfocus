@@ -56,10 +56,10 @@ The menu bar icon is a half-filled circle; it dims when the effect is off.
 
 | Item | What it does |
 | --- | --- |
-| Enable Sharp Focus | Master switch. Also `⌃⌥⌘F` from anywhere. |
+| Enable Sharp Focus | Master switch. Also `⌃⌥⌘F` from anywhere (change it in Settings → General). |
 | Snooze | Turn off for 15, 30, 60 or 120 minutes, then turn back on by itself. |
 | Presets | Apply a saved preset, save the current settings as a new one, or open the preset editor. |
-| Pin Focused Window | `⌃⌥⌘P`. Keeps that window in color even when it isn't focused. |
+| Pin Focused Window | `⌃⌥⌘P` (change it in Settings → General). Keeps that window in color even when it isn't focused. |
 | Clear Pinned Windows | Appears once something is pinned. |
 | Settings… | Opens the settings window. |
 
@@ -76,6 +76,12 @@ nothing.
 
 - *All windows of active app* (default) — every window of the frontmost app.
 - *Focused window only* — just the frontmost window of the frontmost app.
+
+**Focused window stays grayscale** (Settings → Effect → Keep in color, off by
+default) splits the effect in two: blur and dimming still lift for whatever is
+focused, but grayscale lifts only for pinned windows and **Always in color**
+apps. The window you're working in is sharp and undimmed, just desaturated —
+only your pinned and always-colored windows are ever in full color.
 
 **Always in color** (Settings → Effect) is a list of apps whose windows never get filtered.
 A music player or a chat window you want to keep an eye on. It's matched by
@@ -158,6 +164,7 @@ sfctl grayscale 0..1               desaturation amount
 sfctl blur 0..40                   blur radius in points
 sfctl dim 0..0.9                   dimming amount
 sfctl mode focusedWindow|frontApp  what stays in color
+sfctl focused-gray 1|0             keep the focused window grayscale
 sfctl preset "Deep Work"           apply a preset (and enable)
 sfctl snooze 30                    turn off for N minutes
 sfctl mc-pause 1|0                 pause in Mission Control
@@ -179,6 +186,7 @@ Keyboard Maestro, a browser bar, `open(1)`.
 | `sharpfocus://disable` | Turn off |
 | `sharpfocus://toggle` | Flip |
 | `sharpfocus://set?grayscale=0.8&blur=10&dim=0.2&mode=frontApp` | Set any subset of the sliders |
+| `sharpfocus://set?focusedGray=1` | Keep the focused window grayscale |
 | `sharpfocus://preset?name=Deep%20Work` | Apply a preset by name (case-insensitive) |
 | `sharpfocus://snooze?minutes=30` | Snooze |
 | `sharpfocus://settings` | Open settings |
@@ -205,14 +213,17 @@ One borderless, click-through overlay window per display, at the floating
 window level. The menu bar, the Dock and open menus sit above it and are never
 touched.
 
-The overlay hosts a private `CABackdropLayer` with `CAFilter` instances
-(`colorSaturate`, `gaussianBlur`) attached — the same window-server mechanism
+The overlay hosts two private `CABackdropLayer`s with `CAFilter` instances
+(`colorSaturate` on one, `gaussianBlur` on the other) — the same
+window-server mechanism
 behind `NSVisualEffectView` vibrancy. The window server samples and filters
 what is composited behind the overlay. The app itself never reads a single
 pixel, which is why it needs no screen recording permission.
 
-A `CAShapeLayer` even-odd mask cuts holes over the windows that should stay in
-color. Hole geometry is occlusion-aware: the tracker walks the window list
+A `CAShapeLayer` even-odd mask per effect layer cuts holes over the windows
+that should stay unfiltered — one shared set of holes normally, or a separate
+grayscale set when "Focused window stays grayscale" is on. Hole geometry is
+occlusion-aware: the tracker walks the window list
 front to back and subtracts anything covering a focused window, so a
 non-focused window floating on top of your editor is still filtered.
 

@@ -1,11 +1,5 @@
 import AppKit
 
-/// Evaluates automation rules (time ranges and Focus modes) and applies
-/// preset/disable actions. When the first rule activates it snapshots the
-/// manual state; when no rule matches anymore it restores that snapshot, so
-/// automation never permanently clobbers what the user had configured. The
-/// snapshot is persisted (Settings.automationState) so this holds across
-/// relaunches too.
 final class AutomationEngine {
     private let monitor = FocusModeMonitor.shared
     private var timer: Timer?
@@ -23,19 +17,14 @@ final class AutomationEngine {
     func evaluate() {
         let settings = Settings.shared
         let matching = settings.automationRules.filter { $0.isEnabled && matches($0.trigger) }
-
-        // Focus-mode rules take precedence over time rules; among equals the
-        // later rule in the list wins.
         let winner = matching.last { isFocusTrigger($0.trigger) } ?? matching.last
         let state = settings.automationState
 
         if let winner {
             if let state, state.activeRuleID == winner.id,
                state.userOverrode || state.action == winner.action {
-                return  // already applied (or the user took over)
+                return
             }
-            // Chained rules keep the original snapshot; after a user override
-            // the current state is the new baseline.
             let snapshot: EffectSnapshot? = (state?.userOverrode == true)
                 ? EffectSnapshot(settings)
                 : (state?.snapshot ?? EffectSnapshot(settings))
@@ -86,7 +75,6 @@ final class AutomationEngine {
             if start <= end {
                 return minutes >= start && minutes < end
             } else {
-                // Overnight range, e.g. 22:00-06:00.
                 return minutes >= start || minutes < end
             }
         case .focusMode(let name):

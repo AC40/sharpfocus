@@ -5,6 +5,7 @@ import Foundation
 //   sfctl enabled 1|0          sfctl toggle
 //   sfctl grayscale 0..1       sfctl blur 0..40        sfctl dim 0..0.9
 //   sfctl mode focusedWindow|frontApp
+//   sfctl focused-gray 1|0     focused window keeps the grayscale
 //   sfctl preset "Deep Work"   sfctl snooze <minutes>
 //   sfctl mc-pause 1|0
 
@@ -18,6 +19,7 @@ guard let key = arguments.first, !["-h", "--help", "help"].contains(key) else {
       blur 0..40             blur radius in points
       dim 0..0.9             dimming amount
       mode focusedWindow|frontApp
+      focused-gray 1|0       keep the focused window grayscale (full color only for pins & Always apps)
       preset <name>          apply a preset (and enable)
       snooze <minutes>       turn off temporarily
       mc-pause 1|0           pause in Mission Control

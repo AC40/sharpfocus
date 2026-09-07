@@ -28,6 +28,15 @@ if [ ! -f build/AppIcon.icns ]; then
 fi
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
+# App resources (SVGs, images) — copy Resources into bundle.
+if [ -d Sources/SharpFocus/Resources ]; then
+  cp -R Sources/SharpFocus/Resources/* "$APP/Contents/Resources/"
+fi
+# Also copy SPM resource bundle if present (Bundle.module support).
+for bundle in ".build/$CONFIG/"*.bundle ".build/$CONFIG/SharpFocus_"*.bundle; do
+  [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/" 2>/dev/null || true
+done
+
 VERSION="${SHARPFOCUS_VERSION:-0.2.0}"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

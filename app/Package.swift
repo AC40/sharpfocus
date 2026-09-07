@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "SharpFocus",
-            path: "Sources/SharpFocus"
+            path: "Sources/SharpFocus",
+            resources: [.process("Resources")]
         ),
         .executableTarget(
             name: "sfctl",
