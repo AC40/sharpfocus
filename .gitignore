@@ -22,4 +22,3 @@ xcuserdata/
 
 # SwiftPM Xcode glue (auto-generated; real scheme lives in .xcodeproj/xcshareddata)
 app/.swiftpm/
-.r2*.*
