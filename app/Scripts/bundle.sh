@@ -37,7 +37,7 @@ for bundle in ".build/$CONFIG/"*.bundle ".build/$CONFIG/SharpFocus_"*.bundle; do
   [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/" 2>/dev/null || true
 done
 
-VERSION="${SHARPFOCUS_VERSION:-0.2.0}"
+VERSION="${SHARPFOCUS_VERSION:-0.3.0}"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

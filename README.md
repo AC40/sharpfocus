@@ -143,6 +143,32 @@ that, and the sandbox wouldn't allow it anyway.
 No. There is no networking code in the app at all. No analytics, no update
 check, no crash reporting. Settings live in `UserDefaults` on your machine.
 
+## Releasing
+
+Releases are tag-based. Pushing a tag `v*.*.*` triggers the GitHub Actions
+workflow that builds `SharpFocus.app` and publishes it.
+
+```sh
+# from repo root or app/
+./app/Scripts/release.sh 0.3.0          # bump, build locally, tag, push, create GH release
+./app/Scripts/release.sh 0.3.0 --ci     # bump, tag, push — CI builds & publishes
+./app/Scripts/release.sh 0.3.0 --dry-run # preview without pushing
+```
+
+The script bumps the version in `app/Scripts/bundle.sh`, `app/SharpFocus-Info.plist`
+and `app/SharpFocus.xcodeproj/project.pbxproj`, commits it, creates tag `v0.3.0`,
+and either builds locally and runs `gh release create` (default) or lets
+`.github/workflows/release.yml` build on `macos-14` and attach
+`SharpFocus-0.3.0.zip` (+ `.sha256`) to the release.
+
+You can also tag manually:
+
+```sh
+git tag v0.3.0 && git push origin v0.3.0
+```
+
+Requires `gh` authenticated (`gh auth login`) for local mode.
+
 ## Contributing
 
 Issues and pull requests are welcome. Small, focused changes are much easier to
