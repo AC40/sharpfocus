@@ -1,7 +1,24 @@
 .DS_Store
+._*
+.playwright-mcp/
+
+# Swift / Xcode build output
 app/.build/
 app/build/
-web/node_modules/
-web/dist/
-.playwright-mcp/
-/landing-full.png
+DerivedData/
+
+# Xcode user-specific state (window layout, breakpoints, scheme management)
+xcuserdata/
+*.xcuserstate
+*.xcbkptlist
+*.xcschememanagement.plist
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.xcscmblueprint
+
+# SwiftPM Xcode glue (auto-generated; real scheme lives in .xcodeproj/xcshareddata)
+app/.swiftpm/

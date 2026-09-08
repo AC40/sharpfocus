@@ -58,7 +58,7 @@ struct AboutPane: View {
                 .frame(width: 84, height: 84)
             Text("Sharp Focus").font(.title2.bold())
             Text(version).font(.callout).foregroundStyle(.secondary)
-            Text("Only the window you're working in stays in color.")
+            Text("Focus on whats important. Deemphasize everything else.")
                 .font(.body).foregroundStyle(.secondary)
                 .padding(.top, 2)
             HStack(spacing: 22) {
@@ -85,14 +85,16 @@ struct AboutPane: View {
             }
             .font(.callout)
             .padding(.top, 10)
+            
+            Spacer()
+            Link("Support the Developer", destination: URL(string: "https://buymeacoffee.com/rn22w94kcqt")!)
+                .padding(10)
+                .background(.blue)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             Spacer()
             Text("Made by Aaron Richter · MIT License")
                 .font(.callout).foregroundStyle(.secondary)
-            Text("Grayscale and blur use a private macOS API. If it changes, Sharp Focus falls back to dimming.")
-                .font(.caption).foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 36)
-                .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

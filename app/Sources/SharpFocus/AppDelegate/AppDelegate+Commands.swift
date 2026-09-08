@@ -52,7 +52,7 @@ extension AppDelegate {
 
     func setUpCommandChannel() {
         DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("de.beyond925.SharpFocus.command"),
+            forName: Notification.Name("com.acrichter.SharpFocus.command"),
             object: nil, queue: .main
         ) { [weak self] note in
             guard let self, let line = note.object as? String else { return }

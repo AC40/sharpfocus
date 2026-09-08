@@ -50,7 +50,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleDisplayName</key>
 	<string>Sharp Focus</string>
 	<key>CFBundleIdentifier</key>
-	<string>de.beyond925.SharpFocus</string>
+	<string>com.acrichter.SharpFocus</string>
 	<key>CFBundleExecutable</key>
 	<string>SharpFocus</string>
 	<key>CFBundleIconFile</key>
@@ -73,7 +73,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>de.beyond925.SharpFocus</string>
+			<string>com.acrichter.SharpFocus</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>sharpfocus</string>

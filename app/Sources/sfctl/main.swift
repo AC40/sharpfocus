@@ -32,7 +32,7 @@ let value = arguments.dropFirst().joined(separator: " ")
 let line = value.isEmpty ? key : "\(key)=\(value)"
 
 DistributedNotificationCenter.default().postNotificationName(
-    Notification.Name("de.beyond925.SharpFocus.command"),
+    Notification.Name("com.acrichter.SharpFocus.command"),
     object: line,
     userInfo: nil,
     deliverImmediately: true
