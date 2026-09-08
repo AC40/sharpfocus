@@ -6,7 +6,7 @@ desktop is still there, still readable if you look at it. It just stops
 competing for attention. No screen recording permission, no accessibility
 permission, no network access.
 
-![Sharp Focus demo](https://pub-2ba6a684efd44505b97000e050ebacba.r2.dev/sharpfocus/images/sharpfocus-demo-e8433316.gif)
+![Sharp Focus demo](https://pub-2ba6a684efd44505b97000e050ebacba.r2.dev/sharpfocus/images/sharpfocus-demo-ee036c1f.gif)
 
 Requires macOS 14 or later.
 
