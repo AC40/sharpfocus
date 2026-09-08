@@ -2,13 +2,6 @@
   "bucket": "personal",
   "prefix": "sharpfocus",
   "assets": {
-    "sharpfocus/images/sharpfocus-demo-ada5c847.gif": {
-      "url": "https://pub-2ba6a684efd44505b97000e050ebacba.r2.dev/sharpfocus/images/sharpfocus-demo-ada5c847.gif",
-      "file": "sharpfocus-demo.gif",
-      "sha256": "ada5c8473dbed8b51d1cd4316e85747667f94f9e2230a04cefd1fbb6f7729619",
-      "bytes": 11002518,
-      "uploadedAt": "2026-09-08T13:30:42.911Z"
-    },
     "sharpfocus/images/sharpfocus-demo-e8433316.gif": {
       "url": "https://pub-2ba6a684efd44505b97000e050ebacba.r2.dev/sharpfocus/images/sharpfocus-demo-e8433316.gif",
       "file": "sharpfocus-demo.gif",
