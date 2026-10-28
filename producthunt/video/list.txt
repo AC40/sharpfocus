@@ -1,0 +1,6 @@
+file 'seg-01-cover.mp4'
+file 'seg-02-quiet.mp4'
+file 'seg-03-sliders.mp4'
+file 'seg-04-spotify.mp4'
+file 'seg-05-cli.mp4'
+file 'seg-06-privacy.mp4'
